@@ -6,11 +6,11 @@ const MOOD_EMOJI = { great: '😄', good: '🙂', okay: '😐', bad: '😔', awf
 const MOOD_COLOR = { great: 'text-green-400', good: 'text-lime-400', okay: 'text-yellow-400', bad: 'text-orange-400', awful: 'text-red-400' };
 
 const PROMPTS = [
-  'What's one thing that went well today?',
-  'Describe a moment today when you felt calm or at ease.',
-  'What's something you're looking forward to?',
-  'What challenged you today and how did you respond?',
-  'What would make tomorrow a good day?',
+  "What's one thing that went well today?",
+  "Describe a moment today when you felt calm or at ease.",
+  "What's something you're looking forward to?",
+  "What challenged you today and how did you respond?",
+  "What would make tomorrow a good day?",
 ];
 
 export default function Journal() {

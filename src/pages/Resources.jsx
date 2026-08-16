@@ -1,4 +1,4 @@
-import { Phone, ExternalLink, Heart, Brain, Wind } from 'lucide-react';
+import { Phone, ExternalLink, Brain, Wind } from 'lucide-react';
 
 const RESOURCES = [
   {

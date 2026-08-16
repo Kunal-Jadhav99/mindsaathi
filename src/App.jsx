@@ -33,9 +33,9 @@ export default function App() {
 
   return (
     <Router>
-      <div className="app-shell">
+      <div className="min-h-screen flex bg-bg-950">
         {isLoggedIn && <Navbar />}
-        <main className={`main-content ${!isLoggedIn ? '!ml-0' : ''}`}>
+        <main className={`flex-1 w-full transition-all duration-300 ${isLoggedIn ? 'ml-60' : 'ml-0'}`}>
           <Routes>
             <Route path="/" element={!isLoggedIn ? <Landing /> : <Navigate to={role === 'admin' ? '/admin' : '/dashboard'} replace />} />
             

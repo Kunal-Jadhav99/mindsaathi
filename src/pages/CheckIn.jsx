@@ -17,7 +17,7 @@ export default function CheckIn() {
   const [gad7Answers, setGad7Answers] = useState(Array(7).fill(null));
   const [mood, setMood] = useState(null);
   const [q9Triggered, setQ9Triggered] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  // submitted state removed
   const [result, setResult] = useState(null);
 
   function setPhq9(i, v) {
@@ -61,9 +61,9 @@ export default function CheckIn() {
   }
 
   const riskInfo = {
-    low:    { color: 'text-green-400', bg: 'bg-green-400/10 border-green-400/25', icon: <CheckCircle size={20} />, label: 'Low Risk', action: 'Keep it up. Check the self-help resources to maintain your wellbeing.' },
+    low: { color: 'text-green-400', bg: 'bg-green-400/10 border-green-400/25', icon: <CheckCircle size={20} />, label: 'Low Risk', action: 'Keep it up. Check the self-help resources to maintain your wellbeing.' },
     medium: { color: 'text-yellow-400', bg: 'bg-yellow-400/10 border-yellow-400/25', icon: <AlertTriangle size={20} />, label: 'Medium Risk', action: 'Consider booking an optional counsellor session. You don\'t have to go through this alone.' },
-    high:   { color: 'text-red-400', bg: 'bg-red-400/10 border-red-400/25', icon: <AlertTriangle size={20} />, label: 'High Risk', action: 'Your counsellor has been notified. Crisis resources are available now — please reach out.' },
+    high: { color: 'text-red-400', bg: 'bg-red-400/10 border-red-400/25', icon: <AlertTriangle size={20} />, label: 'High Risk', action: 'Your counsellor has been notified. Crisis resources are available now — please reach out.' },
   };
 
   if (phase === 'done' && result) {
@@ -113,9 +113,8 @@ export default function CheckIn() {
       <div className="flex gap-1 p-1 bg-bg-800 rounded-xl mb-8 border border-surface-border max-w-xs">
         {[['phq9', 'PHQ-9 (Depression)'], ['gad7', 'GAD-7 (Anxiety)']].map(([key, label]) => (
           <button key={key} onClick={() => phase !== 'done' && setPhase(key)}
-            className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-              phase === key ? 'bg-brand-500/20 text-brand-400 border border-brand-500/35' : 'text-slate-500'
-            }`}>
+            className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${phase === key ? 'bg-brand-500/20 text-brand-400 border border-brand-500/35' : 'text-slate-500'
+              }`}>
             {label}
           </button>
         ))}
@@ -145,13 +144,12 @@ export default function CheckIn() {
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {FREQUENCY_OPTIONS.map(({ label, value }) => (
                   <button key={value} onClick={() => setPhq9(i, value)}
-                    className={`px-3 py-2 rounded-xl text-xs font-medium border transition-all ${
-                      phq9Answers[i] === value
+                    className={`px-3 py-2 rounded-xl text-xs font-medium border transition-all ${phq9Answers[i] === value
                         ? i === 8 && value > 0
                           ? 'bg-red-400/20 border-red-400/50 text-red-300'
                           : 'bg-brand-500/20 border-brand-500/50 text-brand-300'
                         : 'border-surface-border text-slate-400 hover:border-surface-border hover:bg-bg-700'
-                    }`}>
+                      }`}>
                     {label}
                   </button>
                 ))}
@@ -177,11 +175,10 @@ export default function CheckIn() {
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {FREQUENCY_OPTIONS.map(({ label, value }) => (
                   <button key={value} onClick={() => setGad7(i, value)}
-                    className={`px-3 py-2 rounded-xl text-xs font-medium border transition-all ${
-                      gad7Answers[i] === value
+                    className={`px-3 py-2 rounded-xl text-xs font-medium border transition-all ${gad7Answers[i] === value
                         ? 'bg-brand-500/20 border-brand-500/50 text-brand-300'
                         : 'border-surface-border text-slate-400 hover:bg-bg-700'
-                    }`}>
+                      }`}>
                     {label}
                   </button>
                 ))}
@@ -195,9 +192,8 @@ export default function CheckIn() {
             <div className="flex gap-3">
               {MOODS.map(m => (
                 <button key={m} onClick={() => setMood(m)}
-                  className={`flex flex-col items-center gap-1 p-3 rounded-xl border text-xs transition-all flex-1 ${
-                    mood === m ? 'bg-brand-500/15 border-brand-500/40 text-brand-300' : 'border-surface-border text-slate-400 hover:bg-bg-700'
-                  }`}>
+                  className={`flex flex-col items-center gap-1 p-3 rounded-xl border text-xs transition-all flex-1 ${mood === m ? 'bg-brand-500/15 border-brand-500/40 text-brand-300' : 'border-surface-border text-slate-400 hover:bg-bg-700'
+                    }`}>
                   <span className="text-xl">{MOOD_EMOJI[m]}</span>
                   <span className="capitalize">{m}</span>
                 </button>

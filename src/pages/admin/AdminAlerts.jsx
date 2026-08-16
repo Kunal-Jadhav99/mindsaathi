@@ -30,7 +30,7 @@ export default function AdminAlerts() {
                 <p className="text-xs text-slate-500">Pseudonym: {alert.pseudonym}</p>
                 <p className="text-[10px] text-slate-600 mt-0.5">Flagged {timeAgo(alert.flaggedAt)}</p>
               </div>
-              
+
               <div className="col-span-2">
                 <span className={getRiskBadgeClass(alert.riskLevel)}>
                   {alert.riskLevel === 'high' && <AlertTriangle size={12} />}
@@ -47,9 +47,8 @@ export default function AdminAlerts() {
               </div>
 
               <div className="col-span-2">
-                <span className={`text-xs font-semibold px-2 py-1 rounded-md ${
-                  alert.trend === 'rising' ? 'bg-red-400/10 text-red-400' : 'bg-surface-subtle text-slate-400'
-                }`}>
+                <span className={`text-xs font-semibold px-2 py-1 rounded-md ${alert.trend === 'rising' ? 'bg-red-400/10 text-red-400' : 'bg-surface-subtle text-slate-400'
+                  }`}>
                   {alert.trend === 'rising' ? '↑ Rising' : '→ Stable'}
                 </span>
               </div>
@@ -66,7 +65,7 @@ export default function AdminAlerts() {
           ))}
         </div>
       </div>
-      
+
       <div className="mt-6 p-4 rounded-xl bg-bg-900 border border-surface-border flex items-start gap-3">
         <ShieldAlert size={16} className="text-slate-400 mt-0.5 flex-shrink-0" />
         <p className="text-xs text-slate-400 leading-relaxed">

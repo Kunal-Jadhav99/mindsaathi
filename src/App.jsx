@@ -1,25 +1,25 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useApp } from './context/AppContext.jsx';
+import { useApp } from './context/AppContext';
 
 // Layout
-import Navbar from './components/layout/Navbar.jsx';
-import SOSButton from './components/layout/SOSButton.jsx';
-import SOSModal from './components/modals/SOSModal.jsx';
+import Navbar from './components/layout/Navbar';
+import SOSButton from './components/layout/SOSButton';
+import SOSModal from './components/modals/SOSModal';
 
 // Pages
-import Landing from './pages/Landing.jsx';
-import Onboarding from './pages/Onboarding.jsx';
-import Dashboard from './pages/Dashboard.jsx';
-import CheckIn from './pages/CheckIn.jsx';
-import Journal from './pages/Journal.jsx';
-import Chat from './pages/Chat.jsx';
-import Forum from './pages/Forum.jsx';
-import Resources from './pages/Resources.jsx';
-import Profile from './pages/Profile.jsx';
+import Landing from './pages/Landing';
+import Onboarding from './pages/Onboarding';
+import Dashboard from './pages/Dashboard';
+import CheckIn from './pages/CheckIn';
+import Journal from './pages/Journal';
+import Chat from './pages/Chat';
+import Forum from './pages/Forum';
+import Resources from './pages/Resources';
+import Profile from './pages/Profile';
 
 // Admin Pages
-import AdminDashboard from './pages/admin/AdminDashboard.jsx';
-import AdminAlerts from './pages/admin/AdminAlerts.jsx';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminAlerts from './pages/admin/AdminAlerts';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { isLoggedIn, role } = useApp();

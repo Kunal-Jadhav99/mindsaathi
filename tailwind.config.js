@@ -10,20 +10,40 @@ export default {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
       colors: {
+        // Reversed mapping so we don't have to change the JSX classes:
+        // bg-950 is now the Warm Cream background, bg-900 is white cards
         bg: {
-          950: '#0a0a0f',
-          900: '#111118',
-          800: '#1a1a24',
-          700: '#20202e',
+          950: '#FBF9F6', // Warm Cream
+          900: '#FFFFFF', // White for cards
+          800: '#F4F0E6', // Inputs
+          700: '#EAE4D5', // Hovers
         },
         surface: {
-          border: '#2a2a3a',
-          subtle: '#1e1e2a',
+          border: '#E2DCD0',
+          subtle: '#F0EBE0',
+        },
+        // Reversed slate so slate-100 is now dark text
+        slate: {
+          100: '#2F3E46', // Deep Slate (main text)
+          200: '#3D505A',
+          300: '#4C616D',
+          400: '#687E8B', // Muted text
+          500: '#839DAA',
+          600: '#A1B5C0',
+          700: '#C5D2D9',
+          800: '#DFE6EA',
+          900: '#F2F6F8',
         },
         brand: {
-          400: '#a78bfa',
-          500: '#7c6af7',
-          600: '#6d5ae0',
+          400: '#9DBBAE', // Light Sage
+          500: '#87A99B', // Primary Sage Green
+          600: '#759688', // Dark Sage
+        },
+        secondary: {
+          500: '#C8B6FF', // Soft Lavender
+        },
+        accent: {
+          500: '#F7D6C8', // Muted Peach
         },
         risk: {
           low: '#4ade80',
@@ -32,14 +52,14 @@ export default {
         },
       },
       backgroundImage: {
-        'glow-indigo': 'radial-gradient(ellipse at top left, rgba(124,106,247,0.14) 0%, transparent 60%)',
+        'glow-indigo': 'radial-gradient(ellipse at top left, rgba(135,169,155,0.15) 0%, transparent 60%)',
       },
       boxShadow: {
-        'glow-sm':     '0 0 12px rgba(124,106,247,0.25)',
-        'glow-md':     '0 0 24px rgba(124,106,247,0.35)',
-        'glow-lg':     '0 0 48px rgba(124,106,247,0.45)',
-        'glow-danger': '0 0 24px rgba(248,113,113,0.35)',
-        'card':        '0 4px 24px rgba(0,0,0,0.5)',
+        'glow-sm':     '0 4px 12px rgba(135,169,155,0.15)',
+        'glow-md':     '0 8px 24px rgba(135,169,155,0.2)',
+        'glow-lg':     '0 12px 48px rgba(135,169,155,0.25)',
+        'glow-danger': '0 8px 24px rgba(248,113,113,0.25)',
+        'card':        '0 2px 12px rgba(47,62,70,0.04)',
       },
       keyframes: {
         fadeInUp: {
@@ -51,12 +71,12 @@ export default {
           '100%': { opacity: '1' },
         },
         pulseGlow: {
-          '0%, 100%': { boxShadow: '0 0 12px rgba(124,106,247,0.3)' },
-          '50%':       { boxShadow: '0 0 28px rgba(124,106,247,0.65)' },
+          '0%, 100%': { boxShadow: '0 0 12px rgba(135,169,155,0.2)' },
+          '50%':       { boxShadow: '0 0 28px rgba(135,169,155,0.4)' },
         },
         pulseRed: {
-          '0%, 100%': { boxShadow: '0 0 8px rgba(248,113,113,0.4)' },
-          '50%':       { boxShadow: '0 0 22px rgba(248,113,113,0.8)' },
+          '0%, 100%': { boxShadow: '0 0 8px rgba(248,113,113,0.2)' },
+          '50%':       { boxShadow: '0 0 22px rgba(248,113,113,0.5)' },
         },
         breathe: {
           '0%, 100%': { transform: 'scale(1)', opacity: '0.8' },

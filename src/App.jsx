@@ -1,8 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useApp } from './context/AppContext';
 
-// Layout
-import Navbar from './components/layout/Navbar';
+// Layouts
+import StudentLayout from './components/layout/StudentLayout';
 import SOSButton from './components/layout/SOSButton';
 import SOSModal from './components/modals/SOSModal';
 
@@ -28,35 +28,48 @@ function ProtectedRoute({ children, allowedRoles }) {
   return children;
 }
 
+function StudentRoute({ children }) {
+  return (
+    <ProtectedRoute allowedRoles={['student']}>
+      <StudentLayout>{children}</StudentLayout>
+    </ProtectedRoute>
+  );
+}
+
 export default function App() {
   const { isLoggedIn, role } = useApp();
 
   return (
     <Router>
-      <div className="min-h-screen bg-bg-950 text-slate-100">
-        {isLoggedIn && <Navbar />}
-        <main className={`flex-1 w-full transition-all duration-300 ${isLoggedIn ? 'md:pl-72' : ''}`}>
-          <Routes>
-            <Route path="/" element={!isLoggedIn ? <Landing /> : <Navigate to={role === 'admin' ? '/admin' : '/dashboard'} replace />} />
+      <Routes>
+        {/* Public */}
+        <Route
+          path="/"
+          element={
+            !isLoggedIn
+              ? <Landing />
+              : <Navigate to={role === 'admin' ? '/admin' : '/dashboard'} replace />
+          }
+        />
 
-            {/* Student routes */}
-            <Route path="/onboarding" element={<ProtectedRoute allowedRoles={['student']}><Onboarding /></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['student']}><Dashboard /></ProtectedRoute>} />
-            <Route path="/checkin" element={<ProtectedRoute allowedRoles={['student']}><CheckIn /></ProtectedRoute>} />
-            <Route path="/journal" element={<ProtectedRoute allowedRoles={['student']}><Journal /></ProtectedRoute>} />
-            <Route path="/chat" element={<ProtectedRoute allowedRoles={['student']}><Chat /></ProtectedRoute>} />
-            <Route path="/forum" element={<ProtectedRoute allowedRoles={['student']}><Forum /></ProtectedRoute>} />
-            <Route path="/resources" element={<ProtectedRoute allowedRoles={['student']}><Resources /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute allowedRoles={['student']}><Profile /></ProtectedRoute>} />
+        {/* Student routes — wrapped in StudentLayout */}
+        <Route path="/onboarding" element={<ProtectedRoute allowedRoles={['student']}><Onboarding /></ProtectedRoute>} />
+        <Route path="/dashboard"  element={<StudentRoute><Dashboard /></StudentRoute>} />
+        <Route path="/checkin"    element={<StudentRoute><CheckIn /></StudentRoute>} />
+        <Route path="/journal"    element={<StudentRoute><Journal /></StudentRoute>} />
+        <Route path="/chat"       element={<StudentRoute><Chat /></StudentRoute>} />
+        <Route path="/forum"      element={<StudentRoute><Forum /></StudentRoute>} />
+        <Route path="/resources"  element={<StudentRoute><Resources /></StudentRoute>} />
+        <Route path="/profile"    element={<StudentRoute><Profile /></StudentRoute>} />
 
-            {/* Admin routes */}
-            <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
-            <Route path="/admin/alerts" element={<ProtectedRoute allowedRoles={['admin']}><AdminAlerts /></ProtectedRoute>} />
-          </Routes>
-        </main>
-        {isLoggedIn && role === 'student' && <SOSButton />}
-        {isLoggedIn && role === 'student' && <SOSModal />}
-      </div>
+        {/* Admin routes */}
+        <Route path="/admin"        element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin/alerts" element={<ProtectedRoute allowedRoles={['admin']}><AdminAlerts /></ProtectedRoute>} />
+      </Routes>
+
+      {/* SOS overlay — student only */}
+      {isLoggedIn && role === 'student' && <SOSButton />}
+      {isLoggedIn && role === 'student' && <SOSModal />}
     </Router>
   );
 }

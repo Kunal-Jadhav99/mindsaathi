@@ -1,42 +1,61 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { MOCK_FORUM_POSTS } from '../data/mockData';
-import { Shield, MessageCircle, Heart, Share2, AlertTriangle, Send } from 'lucide-react';
+import { Shield, MessageCircle, Heart, AlertTriangle, Send, Plus, Search, TrendingUp } from 'lucide-react';
+
+const CATEGORIES = [
+  { id: 'all',        label: 'All Topics' },
+  { id: 'stress',     label: 'Stress & Anxiety' },
+  { id: 'academics',  label: 'Academics' },
+  { id: 'social',     label: 'Relationships' },
+  { id: 'wellbeing',  label: 'Wellbeing Tips' },
+  { id: 'general',    label: 'General' },
+];
+
+const GUIDELINES = [
+  'Be kind and respectful',
+  'Share to support, not to judge',
+];
+
+function formatTime(iso) {
+  const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
 
 export default function Forum() {
   const { user } = useApp();
-  const [posts, setPosts] = useState(MOCK_FORUM_POSTS);
-  const [newPost, setNewPost] = useState('');
-  const [isPosting, setIsPosting] = useState(false);
+  const [posts, setPosts]         = useState(MOCK_FORUM_POSTS);
+  const [category, setCategory]   = useState('all');
+  const [newPost, setNewPost]     = useState('');
+  const [isPosting, setPosting]   = useState(false);
+  const [showCompose, setCompose] = useState(false);
+  const [search, setSearch]       = useState('');
+  const [sort, setSort]           = useState('latest');
 
   function handlePost(e) {
     e.preventDefault();
     if (!newPost.trim()) return;
-    setIsPosting(true);
-
-    // Simulate NLP moderation delay
+    setPosting(true);
     setTimeout(() => {
-      const toxicWords = ['stupid', 'idiot', 'hate', 'ugly', 'dumb'];
-      const isToxic = toxicWords.some(w => newPost.toLowerCase().includes(w));
-      
+      const toxic = ['stupid','idiot','hate','ugly','dumb'];
+      const isToxic = toxic.some(w => newPost.toLowerCase().includes(w));
       const post = {
         id: `fp_${Date.now()}`,
         pseudonym: user.pseudonym,
         avatarColor: user.avatarColor,
         content: newPost.trim(),
         timestamp: new Date().toISOString(),
-        likes: 0,
-        replies: 0,
-        tags: [],
+        likes: 0, replies: 0, tags: [],
         moderationStatus: isToxic ? 'flagged' : 'pending',
       };
-
-      setPosts([post, ...posts]);
+      setPosts(prev => [post, ...prev]);
       setNewPost('');
-      setIsPosting(false);
-
+      setPosting(false);
+      setCompose(false);
       if (!isToxic) {
-        // Simulate approval after a few seconds
         setTimeout(() => {
           setPosts(prev => prev.map(p => p.id === post.id ? { ...p, moderationStatus: 'approved' } : p));
         }, 3000);
@@ -44,115 +63,173 @@ export default function Forum() {
     }, 1200);
   }
 
-  function formatTime(iso) {
-    const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-    if (diff < 60) return 'Just now';
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return `${Math.floor(diff / 86400)}d ago`;
-  }
+  const visible = posts.filter(p => {
+    const matchSearch = !search || p.content.toLowerCase().includes(search.toLowerCase()) || p.pseudonym.toLowerCase().includes(search.toLowerCase());
+    return matchSearch;
+  });
+
+  const sorted = [...visible].sort((a, b) => {
+    if (sort === 'popular') return (b.likes + b.replies) - (a.likes + a.replies);
+    return new Date(b.timestamp) - new Date(a.timestamp);
+  });
 
   return (
-    <div className="page animate-fade-in">
-      <div className="page-header flex items-start justify-between">
-        <div>
-          <h1>Peer Forum</h1>
-          <p>A safe, pseudonymous space to share and support each other.</p>
+    <div style={{ display: 'flex', height: 'calc(100vh - var(--header-h))', overflow: 'hidden' }}>
+
+      {/* ── Left: categories ── */}
+      <div style={{ width: '220px', flexShrink: 0, borderRight: '1px solid var(--border)', background: '#fff', display: 'flex', flexDirection: 'column', padding: '16px 12px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-faint)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '8px', paddingLeft: '8px' }}>
+          All Topics
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-brand-500/10 border border-brand-500/30 rounded-lg">
-          <Shield size={14} className="text-brand-400" />
-          <span className="text-xs font-semibold text-brand-400">NLP Moderated</span>
+        {CATEGORIES.map(cat => (
+          <button key={cat.id} onClick={() => setCategory(cat.id)} style={{
+            width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: '8px',
+            fontSize: '13px', fontWeight: category === cat.id ? 600 : 500,
+            color: category === cat.id ? 'var(--primary)' : 'var(--text-muted)',
+            background: category === cat.id ? 'var(--primary-light)' : 'transparent',
+            border: 'none', cursor: 'pointer', transition: 'all 0.1s', marginBottom: '2px',
+          }}>
+            {cat.label}
+          </button>
+        ))}
+
+        <div style={{ marginTop: '20px', borderTop: '1px solid var(--border-subtle)', paddingTop: '16px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-faint)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '8px', paddingLeft: '8px' }}>
+            Helpful Guidelines
+          </div>
+          {GUIDELINES.map(g => (
+            <div key={g} style={{ fontSize: '12px', color: 'var(--text-muted)', padding: '4px 8px', lineHeight: 1.5 }}>
+              • {g}
+            </div>
+          ))}
         </div>
       </div>
 
-      <div className="max-w-2xl space-y-6">
-        {/* Create Post */}
-        <div className="card-elevated">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
-                 style={{ backgroundColor: `${user.avatarColor}25`, color: user.avatarColor }}>
-              {user.pseudonym[0]}
-            </div>
-            <span className="text-sm font-semibold text-slate-200">Posting as {user.pseudonym}</span>
+      {/* ── Right: posts ── */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+        {/* Toolbar */}
+        <div style={{ padding: '14px 20px', background: '#fff', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Search size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-faint)' }} />
+            <input className="input" placeholder="Search topics..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: '30px', height: '36px', fontSize: '13px' }} />
           </div>
-          <form onSubmit={handlePost}>
-            <textarea
-              className="textarea w-full min-h-[100px] mb-3"
-              placeholder="What's on your mind? Share your thoughts, ask for advice, or just vent..."
-              value={newPost}
-              onChange={e => setNewPost(e.target.value)}
-            />
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] text-slate-500 max-w-[60%] leading-relaxed">
-                Posts are automatically reviewed by our AI moderation system to maintain a safe, supportive environment.
-              </p>
-              <button type="submit" disabled={!newPost.trim() || isPosting} className="btn btn-primary">
-                {isPosting ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Send size={14} /> Post</>}
-              </button>
-            </div>
-          </form>
+          <select
+            value={sort} onChange={e => setSort(e.target.value)}
+            className="input" style={{ width: '120px', height: '36px', fontSize: '13px' }}
+          >
+            <option value="latest">Latest</option>
+            <option value="popular">Popular</option>
+          </select>
+          <button className="btn btn-primary btn-sm" style={{ gap: '5px', whiteSpace: 'nowrap' }} onClick={() => setCompose(v => !v)}>
+            <Plus size={14} /> New Post
+          </button>
         </div>
 
-        {/* Feed */}
-        <div className="space-y-4">
-          {posts.map(post => (
-            <div key={post.id} className="card p-5 relative overflow-hidden group">
+        {/* Compose panel */}
+        {showCompose && (
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', background: 'var(--page-bg)' }}>
+            <div className="card" style={{ padding: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: user.avatarColor + '20', color: user.avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '14px' }}>
+                  {user.pseudonym[0]}
+                </div>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Posting as {user.pseudonym}</span>
+                <span className="badge badge-blue" style={{ fontSize: '10px' }}>
+                  <Shield size={9} />NLP Moderated
+                </span>
+              </div>
+              <form onSubmit={handlePost}>
+                <textarea
+                  className="textarea"
+                  placeholder="What's on your mind? Share your thoughts, ask for advice, or just vent..."
+                  value={newPost}
+                  onChange={e => setNewPost(e.target.value)}
+                  style={{ minHeight: '90px', marginBottom: '10px' }}
+                />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <p style={{ fontSize: '11px', color: 'var(--text-faint)', maxWidth: '55%', lineHeight: 1.5 }}>
+                    Posts are automatically reviewed by our AI moderation system to keep this space safe and supportive.
+                  </p>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={!newPost.trim() || isPosting}>
+                    {isPosting ? <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid white', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} /> : <><Send size={13} /> Post</>}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Posts list */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {sorted.map(post => (
+            <div key={post.id} className="card" style={{ padding: '16px', position: 'relative', overflow: 'hidden' }}>
+              {/* Pending overlay */}
               {post.moderationStatus === 'pending' && (
-                <div className="absolute inset-0 bg-bg-900/80 backdrop-blur-[2px] flex items-center justify-center z-10">
-                  <div className="flex items-center gap-2 px-4 py-2 bg-orange-400/10 border border-orange-400/30 rounded-full text-orange-400 text-xs font-semibold">
-                    <span className="w-3 h-3 border-2 border-orange-400/30 border-t-orange-400 rounded-full animate-spin" />
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '99px', background: 'var(--warning-light)', border: '1px solid #FDE68A', fontSize: '12px', fontWeight: 600, color: '#B45309' }}>
+                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', border: '2px solid #FDE68A', borderTop: '2px solid #B45309', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
                     Reviewing post...
                   </div>
                 </div>
               )}
               {post.moderationStatus === 'flagged' && (
-                <div className="absolute inset-0 bg-bg-900/95 backdrop-blur-[2px] flex items-center justify-center z-10">
-                  <div className="text-center px-6">
-                    <AlertTriangle size={24} className="text-red-400 mx-auto mb-2" />
-                    <p className="text-sm font-semibold text-slate-200 mb-1">Post Flagged</p>
-                    <p className="text-xs text-slate-500">This post violates our community guidelines for respectful communication.</p>
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+                  <div style={{ textAlign: 'center', padding: '0 24px' }}>
+                    <AlertTriangle size={22} style={{ color: 'var(--danger)', margin: '0 auto 8px' }} />
+                    <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '14px', marginBottom: '4px' }}>Post Flagged</p>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>This post violates our community guidelines.</p>
                   </div>
                 </div>
               )}
 
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-                       style={{ backgroundColor: `${post.avatarColor}25`, color: post.avatarColor }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: post.avatarColor + '20', color: post.avatarColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '14px', flexShrink: 0 }}>
                     {post.pseudonym[0]}
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-200">{post.pseudonym}</p>
-                    <p className="text-[11px] text-slate-500">{formatTime(post.timestamp)}</p>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{post.pseudonym}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-faint)' }}>{formatTime(post.timestamp)}</div>
                   </div>
                 </div>
               </div>
-              
-              <p className="text-sm text-slate-300 leading-relaxed mb-4 whitespace-pre-wrap">{post.content}</p>
-              
+
+              <p style={{ fontSize: '14px', color: 'var(--text-body)', lineHeight: 1.6, marginBottom: '12px', whiteSpace: 'pre-wrap' }}>{post.content}</p>
+
               {post.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-4">
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '12px' }}>
                   {post.tags.map(t => (
-                    <span key={t} className="text-[10px] font-medium px-2 py-1 rounded-md bg-surface-subtle text-slate-400">#{t}</span>
+                    <span key={t} className="badge badge-gray">#{t}</span>
                   ))}
                 </div>
               )}
 
-              <div className="flex items-center gap-6 pt-4 border-t border-surface-subtle">
-                <button className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-brand-400 transition-colors">
-                  <Heart size={15} /> {post.likes}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '20px', paddingTop: '10px', borderTop: '1px solid var(--border-subtle)' }}>
+                <button style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--danger)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                >
+                  <Heart size={14} /> {post.likes}
                 </button>
-                <button className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-brand-400 transition-colors">
-                  <MessageCircle size={15} /> {post.replies}
+                <button style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                >
+                  <MessageCircle size={14} /> {post.replies} replies
                 </button>
-                <button className="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-brand-400 transition-colors ml-auto">
-                  <Share2 size={15} /> Share
+                <button style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', marginLeft: 'auto' }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                >
+                  <TrendingUp size={13} /> Reply
                 </button>
               </div>
             </div>
           ))}
         </div>
       </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

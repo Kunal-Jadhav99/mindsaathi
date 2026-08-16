@@ -33,12 +33,12 @@ export default function App() {
 
   return (
     <Router>
-      <div className="min-h-screen flex bg-bg-950">
+      <div className="min-h-screen bg-bg-950 text-slate-100">
         {isLoggedIn && <Navbar />}
-        <main className={`flex-1 w-full transition-all duration-300 ${isLoggedIn ? 'ml-60' : 'ml-0'}`}>
+        <main className={`flex-1 w-full transition-all duration-300 ${isLoggedIn ? 'md:pl-72' : ''}`}>
           <Routes>
             <Route path="/" element={!isLoggedIn ? <Landing /> : <Navigate to={role === 'admin' ? '/admin' : '/dashboard'} replace />} />
-            
+
             {/* Student routes */}
             <Route path="/onboarding" element={<ProtectedRoute allowedRoles={['student']}><Onboarding /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['student']}><Dashboard /></ProtectedRoute>} />

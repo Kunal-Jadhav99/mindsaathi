@@ -10,92 +10,89 @@ export default {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
       colors: {
-        // Reversed mapping so we don't have to change the JSX classes:
-        // bg-950 is now the Warm Cream background, bg-900 is white cards
         bg: {
-          950: '#FBF9F6', // Warm Cream
-          900: '#FFFFFF', // White for cards
-          800: '#F4F0E6', // Inputs
-          700: '#EAE4D5', // Hovers
+          950: '#F4F8FF',
+          900: '#FFFFFF',
+          800: '#EDF4FF',
+          700: '#E0ECFF',
         },
         surface: {
-          border: '#E2DCD0',
-          subtle: '#F0EBE0',
+          border: '#D6E3F7',
+          subtle: '#EEF4FF',
         },
-        // Reversed slate so slate-100 is now dark text
         slate: {
-          100: '#2F3E46', // Deep Slate (main text)
-          200: '#3D505A',
-          300: '#4C616D',
-          400: '#687E8B', // Muted text
-          500: '#839DAA',
-          600: '#A1B5C0',
-          700: '#C5D2D9',
-          800: '#DFE6EA',
-          900: '#F2F6F8',
+          100: '#0F172A',
+          200: '#15314F',
+          300: '#23436C',
+          400: '#466387',
+          500: '#667D9B',
+          600: '#8EA0B8',
+          700: '#B9C7D8',
+          800: '#DDEAFD',
+          900: '#F6F9FF',
         },
         brand: {
-          400: '#9DBBAE', // Light Sage
-          500: '#87A99B', // Primary Sage Green
-          600: '#759688', // Dark Sage
+          400: '#7DB6FF',
+          500: '#2D6CDF',
+          600: '#1F4FB3',
         },
         secondary: {
-          500: '#C8B6FF', // Soft Lavender
+          500: '#9EC3FF',
         },
         accent: {
-          500: '#F7D6C8', // Muted Peach
+          500: '#DCEBFF',
         },
         risk: {
-          low: '#4ade80',
-          medium: '#fbbf24',
-          high: '#f87171',
+          low: '#22c55e',
+          medium: '#f59e0b',
+          high: '#ef4444',
         },
       },
       backgroundImage: {
-        'glow-indigo': 'radial-gradient(ellipse at top left, rgba(135,169,155,0.15) 0%, transparent 60%)',
+        'glow-indigo': 'radial-gradient(ellipse at top left, rgba(45,108,223,0.12) 0%, transparent 60%)',
       },
       boxShadow: {
-        'glow-sm':     '0 4px 12px rgba(135,169,155,0.15)',
-        'glow-md':     '0 8px 24px rgba(135,169,155,0.2)',
-        'glow-lg':     '0 12px 48px rgba(135,169,155,0.25)',
-        'glow-danger': '0 8px 24px rgba(248,113,113,0.25)',
-        'card':        '0 2px 12px rgba(47,62,70,0.04)',
+        'glow-sm': '0 8px 24px rgba(45,108,223,0.14)',
+        'glow-md': '0 16px 36px rgba(45,108,223,0.18)',
+        'glow-lg': '0 22px 52px rgba(45,108,223,0.22)',
+        'glow-danger': '0 10px 30px rgba(239,68,68,0.2)',
+        'card': '0 4px 20px rgba(15,23,42,0.04)',
       },
       keyframes: {
         fadeInUp: {
-          '0%':   { opacity: '0', transform: 'translateY(16px)' },
+          '0%': { opacity: '0', transform: 'translateY(16px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
         fadeIn: {
-          '0%':   { opacity: '0' },
+          '0%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
         pulseGlow: {
-          '0%, 100%': { boxShadow: '0 0 12px rgba(135,169,155,0.2)' },
-          '50%':       { boxShadow: '0 0 28px rgba(135,169,155,0.4)' },
+          '0%, 100%': { boxShadow: '0 0 12px rgba(45,108,223,0.18)' },
+          '50%': { boxShadow: '0 0 28px rgba(45,108,223,0.28)' },
         },
         pulseRed: {
-          '0%, 100%': { boxShadow: '0 0 8px rgba(248,113,113,0.2)' },
-          '50%':       { boxShadow: '0 0 22px rgba(248,113,113,0.5)' },
+          '0%, 100%': { boxShadow: '0 0 8px rgba(239,68,68,0.18)' },
+          '50%': { boxShadow: '0 0 22px rgba(239,68,68,0.32)' },
         },
         breathe: {
           '0%, 100%': { transform: 'scale(1)', opacity: '0.8' },
-          '50%':       { transform: 'scale(1.07)', opacity: '1' },
+          '50%': { transform: 'scale(1.07)', opacity: '1' },
         },
         slideIn: {
-          '0%':   { opacity: '0', transform: 'translateX(-12px)' },
+          '0%': { opacity: '0', transform: 'translateX(-12px)' },
           '100%': { opacity: '1', transform: 'translateX(0)' },
         },
       },
       animation: {
         'fade-in-up': 'fadeInUp 0.5s ease both',
-        'fade-in':    'fadeIn 0.4s ease both',
+        'fade-in': 'fadeIn 0.4s ease both',
         'pulse-glow': 'pulseGlow 2.5s ease-in-out infinite',
-        'pulse-red':  'pulseRed 1.8s ease-in-out infinite',
-        'breathe':    'breathe 3s ease-in-out infinite',
-        'slide-in':   'slideIn 0.4s ease both',
+        'pulse-red': 'pulseRed 1.8s ease-in-out infinite',
+        'breathe': 'breathe 3s ease-in-out infinite',
+        'slide-in': 'slideIn 0.4s ease both',
       },
     },
   },
   plugins: [],
-}
+};

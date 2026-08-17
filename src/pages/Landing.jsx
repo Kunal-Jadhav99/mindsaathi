@@ -81,7 +81,7 @@ function WellnessIllustration() {
   );
 }
 
-/* Admin login lives in the footer — collapsible with smooth slide-down */
+/* Admin login lives in the footer — collapsible */
 function AdminFooterLogin() {
   const { loginUser, registerUser } = useApp();
   const navigate = useNavigate();
@@ -161,6 +161,7 @@ function AdminFooterLogin() {
 export default function Landing() {
   const { loginUser, registerUser } = useApp();
   const navigate = useNavigate();
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -174,19 +175,15 @@ export default function Landing() {
     setError("");
 
     try {
-      try {
+      if (isRegisterMode) {
+        await registerUser(email, password, "student");
+        navigate("/onboarding");
+      } else {
         await loginUser(email, password, "student");
-      } catch (err) {
-        if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") {
-          // Auto register on first login
-          await registerUser(email, password, "student");
-        } else {
-          throw err;
-        }
+        navigate("/dashboard");
       }
-      navigate("/dashboard");
     } catch (err) {
-      setError(err.message || "Failed to sign in. Check email & password.");
+      setError(err.message || "Authentication failed. Check your email and password.");
     } finally {
       setLoading(false);
     }
@@ -266,7 +263,7 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* ── Student Login Card (original UI preserved) ── */}
+        {/* ── Student Login / Sign Up Card ── */}
         <section id="login-card" className="section-reveal mx-auto max-w-[1200px] px-4 pb-8 sm:px-6 lg:px-8">
           <div className="rounded-[2rem] border border-surface-border bg-white/80 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.04)] sm:p-6">
             <div className="mb-5">
@@ -305,10 +302,12 @@ export default function Landing() {
 
               <div className="reveal-child-4 rounded-[1.5rem] border border-surface-border bg-white p-4 sm:p-5">
                 <div className="mb-5">
-                  <p className="text-2xl font-bold text-slate-100">Welcome back</p>
-                  <p className="mt-1 text-sm text-slate-500">Sign in to continue your journey</p>
+                  <p className="text-2xl font-bold text-slate-100">{isRegisterMode ? "Create Account" : "Welcome back"}</p>
+                  <p className="mt-1 text-sm text-slate-500">{isRegisterMode ? "Register with your student email" : "Sign in to continue your journey"}</p>
                 </div>
+
                 {error && <p className="mb-3 text-xs text-red-500 font-medium">{error}</p>}
+
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div>
                     <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Email address</label>
@@ -319,9 +318,19 @@ export default function Landing() {
                     <input id="login-password" type="password" className="input" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
                   </div>
                   <button id="login-submit" type="submit" disabled={loading} className="btn btn-primary btn-lg w-full">
-                    {loading ? (<><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />Signing in…</>) : "Sign In"}
+                    {loading ? (<><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />Processing…</>) : isRegisterMode ? "Create Account" : "Sign In"}
                   </button>
                 </form>
+
+                <div className="mt-4 text-center">
+                  <button
+                    type="button"
+                    onClick={() => { setIsRegisterMode(!isRegisterMode); setError(""); }}
+                    className="text-xs text-brand-600 hover:text-brand-500 font-medium transition-colors"
+                  >
+                    {isRegisterMode ? "Already have an account? Sign In" : "First time user? Create an account"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

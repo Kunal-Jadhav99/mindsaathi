@@ -1,15 +1,29 @@
 import Groq from 'groq-sdk';
 
-const client = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+let clientInstance = null;
+
+function getGroqClient() {
+  if (!clientInstance) {
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      throw new Error('GROQ_API_KEY environment variable is not defined.');
+    }
+    clientInstance = new Groq({ apiKey });
+  }
+  return clientInstance;
+}
 
 const SYSTEM_PROMPT = {
   role: 'system',
   content:
     'You are an empathetic, warm, and sensitive mental-wellness companion for students. ' +
     'You must never diagnose medical or psychological conditions. ' +
-    'If the user mentions self-harm or suicide, respond immediately with crisis resources (such as Tele-MANAS or iCall) and encourage them to seek professional help.',
+    'If the user mentions self-harm or suicide, respond immediately with crisis resources (such as Tele-MANAS or iCall) and encourage them to seek professional help.\n\n' +
+    'Strict Conversation & Formatting Rules:\n' +
+    '- Never use markdown formatting of any kind — no **bold**, no *italics*, no bullet points, no numbered lists, no tables, no headers. Send plain conversational text only, like a real person texting.\n' +
+    '- Keep responses short — 2 to 4 sentences maximum per reply.\n' +
+    '- Ask only ONE question at a time. Never stack multiple questions in a single response; pick the most important one and hold the rest for later turns.\n' +
+    '- Write like a caring friend texting, not like a report, article, or formal essay.',
 };
 
 /**
@@ -19,6 +33,7 @@ const SYSTEM_PROMPT = {
  */
 export async function getChatResponse(messages = []) {
   try {
+    const client = getGroqClient();
     const formattedMessages = Array.isArray(messages) ? messages : [{ role: 'user', content: String(messages) }];
     const fullMessages = [SYSTEM_PROMPT, ...formattedMessages];
 

@@ -2,15 +2,16 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
+// Load environment variables before importing routes/services
+dotenv.config();
+
 // Route Imports
 import userRoutes from './routes/userRoutes.js';
 import checkinRoutes from './routes/checkinRoutes.js';
-import journalRoutes from './routes/journalRoutes.js';
-import adminRoutes from './routes/adminRoutes.js';
+// import journalRoutes from './routes/journalRoutes.js';
+// import adminRoutes from './routes/adminRoutes.js';
 import forumRoutes from './routes/forumRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -27,8 +28,8 @@ app.get('/health', (req, res) => {
 // Mounting Routes
 app.use('/api/users', userRoutes);
 app.use('/api/checkins', checkinRoutes);
-app.use('/api/journals', journalRoutes);
-app.use('/api/admin', adminRoutes);
+// app.use('/api/journals', journalRoutes);
+// app.use('/api/admin', adminRoutes);
 
 // Part B Routes (Teammate's scope - mounted here for completeness)
 app.use('/api/forum', forumRoutes);

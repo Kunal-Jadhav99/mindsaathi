@@ -15,6 +15,9 @@ if (fs.existsSync(serviceAccountPath)) {
   try {
     const require = createRequire(import.meta.url);
     const serviceAccount = require('./firebase-service-account.json');
+    if (serviceAccount.private_key) {
+      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    }
 
     app = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount)
@@ -25,7 +28,14 @@ if (fs.existsSync(serviceAccountPath)) {
   }
 } else if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
   try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+    const serviceAccount = typeof process.env.FIREBASE_SERVICE_ACCOUNT_JSON === 'string'
+      ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)
+      : process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+
+    if (serviceAccount.private_key) {
+      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    }
+
     app = admin.initializeApp({
       credential: admin.credential.cert(serviceAccount)
     });

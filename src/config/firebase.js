@@ -1,8 +1,17 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 
+const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+
+if (!apiKey || apiKey === "AIzaSy_demo_key") {
+  console.warn(
+    '⚠️ VITE_FIREBASE_API_KEY is not configured in environment variables.\n' +
+    'Please add your Firebase web config variables to your Vercel project or local .env file.'
+  );
+}
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSy_demo_key",
+  apiKey: apiKey || "AIzaSy_demo_key",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "mindsaathi.firebaseapp.com",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "mindsaathi",
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "mindsaathi.appspot.com",

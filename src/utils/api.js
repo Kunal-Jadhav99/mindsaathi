@@ -13,17 +13,24 @@ const getAuthHeaders = () => {
   };
 };
 
-/** Generic fetch wrapper with error handling */
+/** Generic fetch wrapper with robust error handling */
 async function request(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;
   const headers = { ...getAuthHeaders(), ...options.headers };
 
   try {
     const res = await fetch(url, { ...options, headers });
-    const data = await res.json();
+    const text = await res.text();
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      throw new Error(`Server error (${res.status}): ${text.substring(0, 120)}`);
+    }
 
     if (!res.ok) {
-      throw new Error(data.message || `API Error (${res.status})`);
+      throw new Error(data.message || data.error || `API Error (${res.status})`);
     }
 
     return data;

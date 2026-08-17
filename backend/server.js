@@ -20,7 +20,7 @@ app.use(cors());
 app.use(express.json());
 
 // Basic health check endpoint
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
@@ -30,7 +30,7 @@ app.use('/api/checkins', checkinRoutes);
 app.use('/api/journals', journalRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Part B Routes (Teammate's scope - mounted here for completeness)
+// Part B Routes (Teammate's scope)
 app.use('/api/forum', forumRoutes);
 app.use('/api/chat', chatRoutes);
 
@@ -43,6 +43,11 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 MindSaathi server running on port ${PORT}`);
-});
+// Only listen on port if running directly locally (not inside Vercel serverless)
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 MindSaathi server running on port ${PORT}`);
+  });
+}
+
+export default app;

@@ -1,11 +1,48 @@
+import { useState, useEffect } from 'react';
 import { MOCK_DEPT_STATS, MOCK_WEEKLY_TREND } from '../../data/mockData';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line } from 'recharts';
 import { Users, TrendingUp, AlertTriangle } from 'lucide-react';
+import { getAdminSummary, getDeptStats as apiGetDeptStats, getWeeklyTrends as apiGetWeeklyTrends } from '../../utils/api';
 
 export default function AdminDashboard() {
-  const totalStudents = 1245;
-  const activeCheckins = 892;
-  const highRiskCount = MOCK_DEPT_STATS.reduce((acc, curr) => acc + curr.high, 0);
+  const [summary, setSummary] = useState({ totalUsers: 1245, totalCheckins: 892, activeAlerts: 18 });
+  const [deptStats, setDeptStats] = useState(MOCK_DEPT_STATS);
+  const [weeklyTrend, setWeeklyTrend] = useState(MOCK_WEEKLY_TREND);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadDashboardData() {
+      try {
+        const [sumRes, deptRes, trendRes] = await Promise.allSettled([
+          getAdminSummary(),
+          apiGetDeptStats(),
+          apiGetWeeklyTrends()
+        ]);
+
+        if (sumRes.status === 'fulfilled' && sumRes.value) {
+          setSummary({
+            totalUsers: sumRes.value.totalUsers || 1245,
+            totalCheckins: sumRes.value.totalCheckins || 892,
+            activeAlerts: sumRes.value.activeAlerts || 0
+          });
+        }
+
+        if (deptRes.status === 'fulfilled' && Array.isArray(deptRes.value) && deptRes.value.length > 0) {
+          setDeptStats(deptRes.value);
+        }
+
+        if (trendRes.status === 'fulfilled' && Array.isArray(trendRes.value) && trendRes.value.length > 0) {
+          setWeeklyTrend(trendRes.value);
+        }
+      } catch (err) {
+        console.warn('Could not fetch live admin analytics from backend. Displaying prototype data.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDashboardData();
+  }, []);
 
   return (
     <div className="page animate-fade-in">
@@ -27,7 +64,7 @@ export default function AdminDashboard() {
           </div>
           <div>
             <p className="text-xs text-slate-400">Active Students</p>
-            <p className="text-2xl font-bold text-slate-100">{totalStudents}</p>
+            <p className="text-2xl font-bold text-slate-100">{summary.totalUsers}</p>
           </div>
         </div>
         <div className="card flex items-center gap-4">
@@ -35,8 +72,8 @@ export default function AdminDashboard() {
             <TrendingUp size={20} />
           </div>
           <div>
-            <p className="text-xs text-slate-400">Weekly Check-ins</p>
-            <p className="text-2xl font-bold text-slate-100">{activeCheckins}</p>
+            <p className="text-xs text-slate-400">Total Check-ins</p>
+            <p className="text-2xl font-bold text-slate-100">{summary.totalCheckins}</p>
           </div>
         </div>
         <div className="card flex items-center gap-4 border-red-400/20">
@@ -45,7 +82,7 @@ export default function AdminDashboard() {
           </div>
           <div>
             <p className="text-xs text-slate-400">High Risk Alerts (Active)</p>
-            <p className="text-2xl font-bold text-red-400">{highRiskCount}</p>
+            <p className="text-2xl font-bold text-red-400">{summary.activeAlerts}</p>
           </div>
         </div>
       </div>
@@ -53,9 +90,9 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Weekly Trend Chart */}
         <div className="card-elevated">
-          <h2 className="text-sm font-bold text-slate-100 mb-6">Campus-Wide Stress Trend (Last 7 Weeks)</h2>
+          <h2 className="text-sm font-bold text-slate-100 mb-6">Campus-Wide Stress Trend</h2>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={MOCK_WEEKLY_TREND} margin={{ top: 5, right: 30, left: -20, bottom: 5 }}>
+            <LineChart data={weeklyTrend} margin={{ top: 5, right: 30, left: -20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3a" vertical={false} />
               <XAxis dataKey="week" tick={{ fill: '#9090a8', fontSize: 12 }} axisLine={false} tickLine={false} />
               <YAxis yAxisId="left" tick={{ fill: '#9090a8', fontSize: 12 }} axisLine={false} tickLine={false} />
@@ -74,16 +111,15 @@ export default function AdminDashboard() {
 
         {/* Department Breakdown */}
         <div className="card-elevated">
-          <h2 className="text-sm font-bold text-slate-100 mb-6">Risk Distribution by Department (Current Week)</h2>
+          <h2 className="text-sm font-bold text-slate-100 mb-6">Risk Distribution by Department</h2>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={MOCK_DEPT_STATS} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <BarChart data={deptStats} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#2a2a3a" horizontal={false} />
-              <XAxis type="number" tick={{ fill: '#9090a8', fontSize: 12 }} axisLine={false} tickLine={false} max={100} />
+              <XAxis type="number" tick={{ fill: '#9090a8', fontSize: 12 }} axisLine={false} tickLine={false} />
               <YAxis dataKey="dept" type="category" tick={{ fill: '#e2e8f0', fontSize: 12 }} axisLine={false} tickLine={false} width={120} />
               <Tooltip
                 contentStyle={{ background: '#1a1a24', border: '1px solid #2a2a3a', borderRadius: '12px' }}
                 labelStyle={{ color: '#9090a8', marginBottom: '4px' }}
-                formatter={(value) => [`${value}%`, undefined]}
               />
               <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px' }} />
               <Bar dataKey="low" name="Low Risk" stackId="a" fill="#4ade80" radius={[0, 0, 0, 0]} opacity={0.8} />

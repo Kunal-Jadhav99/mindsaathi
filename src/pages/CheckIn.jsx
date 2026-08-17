@@ -63,7 +63,7 @@ export default function CheckIn() {
       mood: mood ?? 'okay',
       journalSnippet: '',
     };
-    addCheckIn(checkin);
+    addCheckIn(checkin, phq9Answers, gad7Answers);
     setResult(checkin);
     setPhase('done');
   }

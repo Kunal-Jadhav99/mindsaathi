@@ -1,8 +1,39 @@
+import { useState, useEffect } from 'react';
 import { MOCK_COUNSELLOR_ALERTS } from '../../data/mockData';
-import { getRiskBadgeClass, formatDate, timeAgo } from '../../utils/riskEngine';
-import { AlertTriangle, UserPlus, Phone, ShieldAlert } from 'lucide-react';
+import { getRiskBadgeClass, timeAgo } from '../../utils/riskEngine';
+import { AlertTriangle, UserPlus, Phone, ShieldAlert, CheckCircle } from 'lucide-react';
+import { getAlerts, updateAlertStatus } from '../../utils/api';
 
 export default function AdminAlerts() {
+  const [alerts, setAlerts] = useState(MOCK_COUNSELLOR_ALERTS);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadAlerts() {
+      try {
+        const liveAlerts = await getAlerts();
+        if (Array.isArray(liveAlerts) && liveAlerts.length > 0) {
+          setAlerts(liveAlerts);
+        }
+      } catch (err) {
+        console.warn('Could not fetch active alerts from backend. Displaying prototype data.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadAlerts();
+  }, []);
+
+  const handleResolveAlert = async (id) => {
+    try {
+      await updateAlertStatus(id, 'resolved', 'Resolved by counsellor.');
+      setAlerts(prev => prev.filter(a => a.id !== id));
+    } catch (err) {
+      console.error('Failed to resolve alert:', err);
+    }
+  };
+
   return (
     <div className="page animate-fade-in">
       <div className="page-header">
@@ -23,7 +54,7 @@ export default function AdminAlerts() {
         </div>
 
         <div className="divide-y divide-surface-subtle">
-          {MOCK_COUNSELLOR_ALERTS.map((alert) => (
+          {alerts.map((alert) => (
             <div key={alert.id} className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-bg-900/50 transition-colors">
               <div className="col-span-3">
                 <p className="text-sm font-bold text-slate-200">{alert.realName}</p>
@@ -47,15 +78,21 @@ export default function AdminAlerts() {
               </div>
 
               <div className="col-span-2">
-                <span className={`text-xs font-semibold px-2 py-1 rounded-md ${alert.trend === 'rising' ? 'bg-red-400/10 text-red-400' : 'bg-surface-subtle text-slate-400'
-                  }`}>
-                  {alert.trend === 'rising' ? '↑ Rising' : '→ Stable'}
+                <span className={`text-xs font-semibold px-2 py-1 rounded-md ${
+                  alert.trend === 'rising' || alert.trend === 'q9-override'
+                    ? 'bg-red-400/10 text-red-400'
+                    : 'bg-surface-subtle text-slate-400'
+                }`}>
+                  {alert.trend === 'rising' || alert.trend === 'q9-override' ? '↑ Rising' : '→ Stable'}
                 </span>
               </div>
 
               <div className="col-span-3 flex items-center justify-end gap-2">
-                <button className="btn btn-sm btn-ghost border-surface-border">
-                  <UserPlus size={14} /> Assign
+                <button
+                  onClick={() => handleResolveAlert(alert.id)}
+                  className="btn btn-sm btn-ghost border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                >
+                  <CheckCircle size={14} /> Resolve
                 </button>
                 <button className="btn btn-sm btn-primary bg-indigo-600 hover:bg-indigo-500">
                   <Phone size={14} /> Contact
@@ -63,6 +100,11 @@ export default function AdminAlerts() {
               </div>
             </div>
           ))}
+          {alerts.length === 0 && (
+            <div className="p-8 text-center text-slate-500 text-sm">
+              No active escalations found for your institute.
+            </div>
+          )}
         </div>
       </div>
 

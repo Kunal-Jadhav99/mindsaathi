@@ -7,7 +7,7 @@ const NOUNS = ['Mountain', 'Owl', 'Cloud', 'Reed', 'River', 'Pebble', 'Forest', 
 const generateRandomPseudonym = () => {
   const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
   const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)];
-  const num = Math.floor(Math.random() * 90) + 10; // 10 to 99
+  const num = Math.floor(Math.random() * 90) + 10;
   return `${adj}${noun}${num}`;
 };
 
@@ -17,18 +17,8 @@ const RANDOM_COLORS = ['#7c6af7', '#4ade80', '#60a5fa', '#fbbf24', '#fb923c', '#
 export const getProfile = async (req, res) => {
   const { uid, email } = req.user;
 
-  // Fallback if DB is not initialized
   if (!db) {
-    return res.json({
-      uid,
-      email,
-      pseudonym: 'LocalTestingUser',
-      avatarColor: '#7c6af7',
-      streak: 5,
-      joinedAt: new Date().toISOString(),
-      role: 'student',
-      onboarded: true
-    });
+    return res.status(503).json({ error: 'Service Unavailable', message: 'Database not connected. Please configure Firebase credentials.' });
   }
 
   try {
@@ -36,7 +26,7 @@ export const getProfile = async (req, res) => {
     const userDoc = await userDocRef.get();
 
     if (!userDoc.exists) {
-      // Create new user profile with default fields
+      // First login — create new user profile with default fields including instituteId
       const newProfile = {
         uid,
         email,
@@ -44,7 +34,9 @@ export const getProfile = async (req, res) => {
         avatarColor: RANDOM_COLORS[Math.floor(Math.random() * RANDOM_COLORS.length)],
         streak: 1,
         joinedAt: new Date().toISOString(),
-        role: 'student',
+        role: 'student', // 'student' | 'admin' | 'counsellor'
+        instituteId: req.body.instituteId || 'default-institute', // Scoped to college
+        department: req.body.department || 'Computer Science',
         onboarded: false
       };
 
@@ -59,13 +51,13 @@ export const getProfile = async (req, res) => {
   }
 };
 
-/** Update user profile (pseudonym, avatar color, onboarding completion, etc.) */
+/** Update user profile (pseudonym, avatar color, instituteId, department, onboarding completion, etc.) */
 export const updateProfile = async (req, res) => {
   const { uid } = req.user;
-  const { pseudonym, avatarColor, onboarded, role } = req.body;
+  const { pseudonym, avatarColor, onboarded, role, instituteId, department } = req.body;
 
   if (!db) {
-    return res.json({ message: 'DB not connected. Mock update successful.', updatedData: req.body });
+    return res.status(503).json({ error: 'Service Unavailable', message: 'Database not connected.' });
   }
 
   try {
@@ -80,7 +72,9 @@ export const updateProfile = async (req, res) => {
     if (pseudonym !== undefined) updates.pseudonym = pseudonym;
     if (avatarColor !== undefined) updates.avatarColor = avatarColor;
     if (onboarded !== undefined) updates.onboarded = onboarded;
-    if (role !== undefined) updates.role = role; // admin can set roles
+    if (role !== undefined) updates.role = role;
+    if (instituteId !== undefined) updates.instituteId = instituteId;
+    if (department !== undefined) updates.department = department;
 
     await userDocRef.update(updates);
 
@@ -93,23 +87,26 @@ export const updateProfile = async (req, res) => {
   }
 };
 
-/** Set user role directly (e.g. for initial admin config) */
+/** Set user role & institute details directly */
 export const setRole = async (req, res) => {
   const { uid } = req.user;
-  const { role } = req.body;
+  const { role, instituteId } = req.body;
 
   if (!['student', 'admin', 'counsellor'].includes(role)) {
     return res.status(400).json({ error: 'Bad Request', message: 'Invalid role value.' });
   }
 
   if (!db) {
-    return res.json({ message: `DB not connected. Set role to ${role}.` });
+    return res.status(503).json({ error: 'Service Unavailable', message: 'Database not connected.' });
   }
 
   try {
     const userDocRef = db.collection('users').doc(uid);
-    await userDocRef.update({ role });
-    return res.json({ success: true, role });
+    const updates = { role };
+    if (instituteId) updates.instituteId = instituteId;
+
+    await userDocRef.update(updates);
+    return res.json({ success: true, role, instituteId: updates.instituteId });
   } catch (error) {
     return res.status(500).json({ error: 'Server Error', message: error.message });
   }

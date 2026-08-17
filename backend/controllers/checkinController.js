@@ -1,6 +1,9 @@
 import { db } from '../config/firebase.js';
 
-// Re-implementing the core risk engine on the backend for independent triage
+// ============================================================
+// Risk Engine — PHQ-9 + GAD-7 triage logic (server-side)
+// ============================================================
+
 const getSingleCheckInRisk = (phq9, gad7, phq9Q9) => {
   if (phq9Q9 >= 1) return 'high'; // Q9 override — instant escalation
   if (phq9 >= 15 || gad7 >= 15) return 'high';
@@ -19,17 +22,14 @@ const getTrendRisk = (history) => {
 
   const latest = last3[0];
 
-  // Q9 override
   if (latest.phq9Q9Score >= 1) {
     return { finalRisk: 'high', trendFlag: 'q9-override', explanation: 'Immediate escalation: self-harm ideation detected (Q9 override).' };
   }
 
-  // Any High in last 3
   if (last3.some(c => c.riskLevel === 'high')) {
     return { finalRisk: 'high', trendFlag: 'high-detected', explanation: 'High risk detected in recent check-ins.' };
   }
 
-  // Worsening Trend: Rise of 5+ points between latest and previous check-in
   if (last3.length >= 2) {
     const [c1, c2] = last3;
     const phqRise = c1.phq9Score - c2.phq9Score;
@@ -45,7 +45,6 @@ const getTrendRisk = (history) => {
     }
   }
 
-  // 3 consecutive medium — plateaued
   if (last3.length === 3 && last3.every(c => c.riskLevel === 'medium')) {
     return { finalRisk: 'high', trendFlag: 'sustained-medium', explanation: '3 consecutive medium check-ins — sustained distress escalated to High.' };
   }
@@ -53,16 +52,16 @@ const getTrendRisk = (history) => {
   return { finalRisk: latest.riskLevel, trendFlag: null, explanation: 'Stable or improving. No escalation.' };
 };
 
+// ============================================================
+// Controller Methods
+// ============================================================
+
 /** Get check-in history for logged-in user */
 export const getCheckins = async (req, res) => {
   const { uid } = req.user;
 
   if (!db) {
-    // Return dummy history if database not initialized
-    return res.json([
-      { id: 'ci2', uid, date: '2026-08-16', phq9Score: 12, gad7Score: 11, phq9Q9Score: 0, riskLevel: 'medium', mood: 'bad', journalSnippet: 'Feeling stressed out.' },
-      { id: 'ci1', uid, date: '2026-08-09', phq9Score: 6, gad7Score: 5, phq9Q9Score: 0, riskLevel: 'low', mood: 'okay', journalSnippet: 'Getting by okay.' }
-    ]);
+    return res.status(503).json({ error: 'Service Unavailable', message: 'Database not connected.' });
   }
 
   try {
@@ -92,41 +91,38 @@ export const createCheckin = async (req, res) => {
     return res.status(400).json({ error: 'Bad Request', message: 'phq9Answers and gad7Answers must be arrays of numbers.' });
   }
 
+  if (phq9Answers.length !== 9) {
+    return res.status(400).json({ error: 'Bad Request', message: 'phq9Answers must contain exactly 9 answers.' });
+  }
+
+  if (gad7Answers.length !== 7) {
+    return res.status(400).json({ error: 'Bad Request', message: 'gad7Answers must contain exactly 7 answers.' });
+  }
+
+  if (!db) {
+    return res.status(503).json({ error: 'Service Unavailable', message: 'Database not connected.' });
+  }
+
   const phq9Score = phq9Answers.reduce((sum, val) => sum + Number(val), 0);
   const gad7Score = gad7Answers.reduce((sum, val) => sum + Number(val), 0);
   const phq9Q9Score = Number(phq9Answers[8] || 0);
 
   const riskLevel = getSingleCheckInRisk(phq9Score, gad7Score, phq9Q9Score);
 
-  if (!db) {
-    // Mock Response
-    return res.json({
-      message: 'DB not connected. Mock evaluation successful.',
-      checkin: {
-        uid,
-        date: new Date().toISOString(),
-        phq9Score,
-        gad7Score,
-        phq9Q9Score,
-        riskLevel,
-        mood,
-        journalSnippet
-      },
-      evaluation: {
-        finalRisk: riskLevel,
-        trendFlag: phq9Q9Score >= 1 ? 'q9-override' : null,
-        explanation: 'Mock evaluation.'
-      }
-    });
-  }
-
   try {
-    // 1. Fetch user profile for streak updates and pseudonym
+    // 1. Fetch user profile for streak updates, pseudonym, and instituteId
     const userDocRef = db.collection('users').doc(uid);
     const userDoc = await userDocRef.get();
-    const userData = userDoc.exists ? userDoc.data() : { pseudonym: 'UnknownUser', streak: 0 };
 
-    // 2. Fetch recent check-ins history
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: 'Not Found', message: 'User profile not found. Complete registration first.' });
+    }
+
+    const userData = userDoc.data();
+    const instituteId = userData.instituteId || req.user.instituteId || 'default-institute';
+    const department = userData.department || 'Computer Science';
+
+    // 2. Fetch recent check-ins history for trend analysis
     const historySnapshot = await db.collection('checkins')
       .where('uid', '==', uid)
       .orderBy('date', 'desc')
@@ -138,9 +134,11 @@ export const createCheckin = async (req, res) => {
       history.push(doc.data());
     });
 
-    // 3. Assemble current check-in data
+    // 3. Assemble current check-in data (scoped to instituteId)
     const newCheckin = {
       uid,
+      instituteId,
+      department,
       date: new Date().toISOString(),
       phq9Score,
       gad7Score,
@@ -166,24 +164,22 @@ export const createCheckin = async (req, res) => {
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
       if (diffDays <= 2) {
-        // Checked in today or yesterday, increment streak
         newStreak += 1;
-      } else if (diffDays > 2) {
-        // Streak broken
-        newStreak = 1;
+      } else {
+        newStreak = 1; // streak broken
       }
     } else {
-      // First check-in
-      newStreak = 1;
+      newStreak = 1; // first check-in
     }
     await userDocRef.update({ streak: newStreak });
 
-    // 6. Escalation Triage Alert Generation
-    // If the trend analysis flags high risk, we create a counselor alert linking the student's real identity.
+    // 6. Escalation Triage — create counsellor alert if high risk, scoped to instituteId
     if (trendResult.finalRisk === 'high') {
       const alertDoc = {
         uid,
-        pseudonym: userData.pseudonym || 'QuietOwl42',
+        instituteId,
+        department,
+        pseudonym: userData.pseudonym || 'Unknown',
         realName: userData.realName || email.split('@')[0],
         riskLevel: 'high',
         latestScore: phq9Score + gad7Score,
@@ -195,7 +191,7 @@ export const createCheckin = async (req, res) => {
       };
 
       await db.collection('alerts').add(alertDoc);
-      console.log(`🚨 Escalation Triggered for user ${uid}. Alert created.`);
+      console.log(`🚨 Escalation Triggered for user ${uid} at institute ${instituteId}. Alert created.`);
     }
 
     return res.status(201).json({

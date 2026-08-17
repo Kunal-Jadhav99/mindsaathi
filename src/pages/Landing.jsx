@@ -29,7 +29,6 @@ const featureItems = [
 
 const resourceCategories = ["Stress","Anxiety","Academic pressure","Sleep","Relationships","Emotional wellbeing","Exam stress","Seeking support"];
 
-/* Scroll-reveal: observe every .section-reveal, add .is-visible when it enters viewport */
 function useScrollReveal() {
   useEffect(() => {
     const targets = document.querySelectorAll(".section-reveal");
@@ -84,17 +83,34 @@ function WellnessIllustration() {
 
 /* Admin login lives in the footer — collapsible with smooth slide-down */
 function AdminFooterLogin() {
-  const { login } = useApp();
+  const { loginUser, registerUser } = useApp();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  function handleAdminLogin(e) {
+  async function handleAdminLogin(e) {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => { login("admin"); setLoading(false); navigate("/admin"); }, 900);
+    setError("");
+    try {
+      try {
+        await loginUser(email, password, "counsellor");
+      } catch (err) {
+        if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") {
+          await registerUser(email, password, "counsellor");
+        } else {
+          throw err;
+        }
+      }
+      navigate("/admin");
+    } catch (err) {
+      setError(err.message || "Failed to sign in as counsellor.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -116,6 +132,7 @@ function AdminFooterLogin() {
       </button>
       <div className={`admin-panel-enter${open ? " admin-panel-open" : ""}`}>
         <form onSubmit={handleAdminLogin} className="mt-4 space-y-3 rounded-2xl border border-surface-border bg-bg-800 p-4">
+          {error && <p className="text-xs text-red-500">{error}</p>}
           <div>
             <label className="mb-1 block text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500">Admin email</label>
             <input id="admin-email" type="email" className="input" placeholder="admin@college.edu" value={email} onChange={(e) => setEmail(e.target.value)} required />
@@ -142,18 +159,37 @@ function AdminFooterLogin() {
 }
 
 export default function Landing() {
-  const { login } = useApp();
+  const { loginUser, registerUser } = useApp();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useScrollReveal();
 
-  function handleLogin(e) {
+  async function handleLogin(e) {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => { login("student"); setLoading(false); navigate("/onboarding"); }, 900);
+    setError("");
+
+    try {
+      try {
+        await loginUser(email, password, "student");
+      } catch (err) {
+        if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") {
+          // Auto register on first login
+          await registerUser(email, password, "student");
+        } else {
+          throw err;
+        }
+      }
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err.message || "Failed to sign in. Check email & password.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   function scrollToLogin() {
@@ -230,7 +266,7 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* ── Student Login Card (no admin toggle) ── */}
+        {/* ── Student Login Card (original UI preserved) ── */}
         <section id="login-card" className="section-reveal mx-auto max-w-[1200px] px-4 pb-8 sm:px-6 lg:px-8">
           <div className="rounded-[2rem] border border-surface-border bg-white/80 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.04)] sm:p-6">
             <div className="mb-5">
@@ -272,6 +308,7 @@ export default function Landing() {
                   <p className="text-2xl font-bold text-slate-100">Welcome back</p>
                   <p className="mt-1 text-sm text-slate-500">Sign in to continue your journey</p>
                 </div>
+                {error && <p className="mb-3 text-xs text-red-500 font-medium">{error}</p>}
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div>
                     <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Email address</label>
@@ -292,7 +329,7 @@ export default function Landing() {
 
         {/* ── Trust strip ── */}
         <section className="section-reveal border-y border-surface-border bg-white/70">
-          <div className="mx-auto grid max-w-6xl gap-4 px-4 py-5 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
+          <div className="mx-auto grid max-w-6xl gap-4 px-4 py-5 sm:px-6 lg:grid-cols-4 lg:px-8">
             {[
               { icon: ShieldCheck, label: "Private by design" },
               { icon: Users, label: "Student-focused" },

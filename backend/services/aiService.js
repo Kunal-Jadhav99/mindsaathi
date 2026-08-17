@@ -1,24 +1,36 @@
-// ============================================================
-// AI Service — Placeholder for Person B (Teammate)
-// ============================================================
-// This file will wrap the Gemini API (@google/generative-ai SDK):
-// - Initialize the model with system instructions for safe mental health dialogue
-// - generateChatResponse(chatHistory, userMessage) → AI reply string
-// - analyzeSentiment(text) → { sentiment, riskScore, flags[] }
-// - classifyContent(text) → { safe: boolean, category, confidence }
-// ============================================================
+import Groq from 'groq-sdk';
 
-export const generateChatResponse = async (chatHistory, userMessage) => {
-  // TODO: Person B will implement Gemini chat generation here
-  return `[AI Placeholder] I received: "${userMessage}". Gemini integration pending.`;
+const client = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
+
+const SYSTEM_PROMPT = {
+  role: 'system',
+  content:
+    'You are an empathetic, warm, and sensitive mental-wellness companion for students. ' +
+    'You must never diagnose medical or psychological conditions. ' +
+    'If the user mentions self-harm or suicide, respond immediately with crisis resources (such as Tele-MANAS or iCall) and encourage them to seek professional help.',
 };
 
-export const analyzeSentiment = async (text) => {
-  // TODO: Person B will implement sentiment analysis here
-  return { sentiment: 'neutral', riskScore: 0, flags: [] };
-};
+/**
+ * Generates an AI chat response using Groq SDK with openai/gpt-oss-120b.
+ * @param {Array<{role: string, content: string}>} messages - Conversation history array [{role, content}]
+ * @returns {Promise<string>} Content of completion choice message
+ */
+export async function getChatResponse(messages = []) {
+  try {
+    const formattedMessages = Array.isArray(messages) ? messages : [{ role: 'user', content: String(messages) }];
+    const fullMessages = [SYSTEM_PROMPT, ...formattedMessages];
 
-export const classifyContent = async (text) => {
-  // TODO: Person B will implement content classification here
-  return { safe: true, category: 'general', confidence: 1.0 };
-};
+    const completion = await client.chat.completions.create({
+      model: 'openai/gpt-oss-120b',
+      messages: fullMessages,
+      temperature: 0.7,
+      max_completion_tokens: 500,
+    });
+
+    return completion.choices[0]?.message?.content || '';
+  } catch (error) {
+    throw new Error(`Groq AI Service Error: ${error.message}`);
+  }
+}

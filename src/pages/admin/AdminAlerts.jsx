@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getRiskBadgeClass, timeAgo } from '../../utils/riskEngine';
-import { AlertTriangle, Phone, ShieldAlert, CheckCircle, RefreshCw, Inbox } from 'lucide-react';
+import { AlertTriangle, Phone, ShieldAlert, CheckCircle, RefreshCw, Inbox, ArrowLeft, Mail } from 'lucide-react';
 import { getAlerts, updateAlertStatus } from '../../utils/api';
 
 export default function AdminAlerts() {
+  const navigate = useNavigate();
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [resolvingId, setResolvingId] = useState(null);
   const [error, setError] = useState(null);
 
   async function loadAlerts() {
@@ -16,7 +19,7 @@ export default function AdminAlerts() {
       setAlerts(Array.isArray(liveAlerts) ? liveAlerts : []);
     } catch (err) {
       console.error('Failed to fetch alerts:', err);
-      setError(err.message || 'Could not load alerts. Check your API configuration.');
+      setError(err.message || 'Could not load alerts from backend.');
       setAlerts([]);
     } finally {
       setLoading(false);
@@ -26,138 +29,230 @@ export default function AdminAlerts() {
   useEffect(() => { loadAlerts(); }, []);
 
   const handleResolveAlert = async (id) => {
+    setResolvingId(id);
     try {
-      await updateAlertStatus(id, 'resolved', 'Resolved by counsellor.');
+      await updateAlertStatus(id, 'resolved', 'Resolved by campus counsellor.');
       setAlerts(prev => prev.filter(a => a.id !== id));
     } catch (err) {
       console.error('Failed to resolve alert:', err);
+    } finally {
+      setResolvingId(null);
     }
   };
 
   return (
-    <div className="page animate-fade-in">
-      <div className="page-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+    <div style={{ padding: '28px', maxWidth: '1240px', margin: '0 auto' }} className="animate-fade-in">
+      
+      {/* ── Header ── */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 className="flex items-center gap-2 text-red-400">
-            <ShieldAlert size={24} />
-            Active Escalations
-          </h1>
-          <p>Students flagged as Medium or High risk requiring counsellor review.</p>
+          <button
+            onClick={() => navigate('/admin')}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              fontSize: '12px', fontWeight: 600, color: 'var(--primary)',
+              background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '6px'
+            }}
+          >
+            <ArrowLeft size={14} /> Back to Institution Dashboard
+          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <h1 style={{ fontSize: '22px', fontWeight: 800, margin: 0, color: '#DC2626', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ShieldAlert size={24} />
+              Active Escalations
+            </h1>
+            <span style={{
+              fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px',
+              background: '#FEF2F2', color: '#DC2626', border: '1px solid #FECACA'
+            }}>
+              Counsellor Confidential
+            </span>
+          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px', margin: 0 }}>
+            Students flagged as High Risk or displaying worsening distress trends requiring psychological triage.
+          </p>
         </div>
+
         <button
           onClick={loadAlerts}
           disabled={loading}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '6px',
-            padding: '6px 12px', borderRadius: '8px', fontSize: '12px',
-            fontWeight: 600, border: '1px solid #2a2a3a',
-            background: 'transparent', color: '#9090a8', cursor: 'pointer',
-          }}
+          className="btn btn-outline"
+          style={{ fontSize: '12px', padding: '7px 12px', borderRadius: '8px' }}
         >
           <RefreshCw size={13} style={{ animation: loading ? 'spin 0.8s linear infinite' : 'none' }} />
           Refresh
         </button>
       </div>
 
-      {/* Error banner */}
+      {/* ── Error Banner ── */}
       {error && (
         <div style={{
           marginBottom: '20px', padding: '12px 16px', borderRadius: '10px',
-          background: '#2a1a1a', border: '1px solid #f87171', color: '#f87171',
+          background: 'var(--danger-light)', border: '1px solid #FECACA', color: 'var(--danger)',
           fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px',
         }}>
-          <AlertTriangle size={15} />
+          <AlertTriangle size={16} />
           {error}
         </div>
       )}
 
-      <div className="bg-bg-800 border border-surface-border rounded-2xl overflow-hidden">
-        {/* Table header */}
-        <div className="grid grid-cols-12 gap-4 p-4 border-b border-surface-border bg-bg-900 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-          <div className="col-span-3">Student</div>
-          <div className="col-span-2">Risk Level</div>
-          <div className="col-span-2">Latest Score</div>
-          <div className="col-span-2">Trend</div>
-          <div className="col-span-3 text-right">Actions</div>
+      {/* ── Table Card ── */}
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        
+        {/* Table Header */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: '3fr 2fr 1.5fr 2fr 2.5fr',
+          padding: '14px 20px', background: '#F8FAFC', borderBottom: '1px solid var(--border)',
+          fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748B'
+        }}>
+          <div>Student Profile</div>
+          <div>Risk Level</div>
+          <div>Combined Score</div>
+          <div>Trend Indicator</div>
+          <div style={{ textAlign: 'right' }}>Actions</div>
         </div>
 
-        <div className="divide-y divide-surface-subtle">
-          {/* Loading skeleton */}
-          {loading && (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#9090a8', fontSize: '13px' }}>
-              <RefreshCw size={24} style={{ margin: '0 auto 12px', opacity: 0.4, animation: 'spin 0.8s linear infinite' }} />
-              Loading escalations…
-            </div>
-          )}
+        {/* Loading Skeleton */}
+        {loading && (
+          <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
+            <RefreshCw size={24} style={{ margin: '0 auto 12px', opacity: 0.5, animation: 'spin 0.8s linear infinite', color: 'var(--primary)' }} />
+            <p style={{ fontSize: '13px', margin: 0 }}>Loading active escalations…</p>
+          </div>
+        )}
 
-          {/* Real alert rows */}
-          {!loading && alerts.map((alert) => (
-            <div key={alert.id} className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-bg-900/50 transition-colors">
-              <div className="col-span-3">
-                <p className="text-sm font-bold text-slate-200">{alert.realName}</p>
-                <p className="text-xs text-slate-500">Pseudonym: {alert.pseudonym}</p>
-                <p className="text-[10px] text-slate-600 mt-0.5">Flagged {timeAgo(alert.flaggedAt)}</p>
+        {/* Rows */}
+        {!loading && alerts.map((alert) => {
+          const avatarInitial = (alert.realName || alert.pseudonym || 'U')[0]?.toUpperCase();
+          const isQ9 = alert.q9Override || alert.trend === 'q9-override';
+
+          return (
+            <div
+              key={alert.id}
+              style={{
+                display: 'grid', gridTemplateColumns: '3fr 2fr 1.5fr 2fr 2.5fr',
+                padding: '16px 20px', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)',
+                transition: 'background 0.12s ease'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              {/* Student Identity */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '38px', height: '38px', borderRadius: '50%', flexShrink: 0,
+                  background: isQ9 ? '#FEF2F2' : '#EFF6FF',
+                  color: isQ9 ? '#DC2626' : '#2563EB',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontWeight: 700, fontSize: '14px', border: `1px solid ${isQ9 ? '#FECACA' : '#BFDBFE'}`
+                }}>
+                  {avatarInitial}
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {alert.realName || 'Unknown Student'}
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px' }}>
+                    Pseudo: <span style={{ fontWeight: 600 }}>{alert.pseudonym}</span> · {alert.department || 'General'}
+                  </div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-faint)', marginTop: '2px' }}>
+                    Flagged {alert.flaggedAt ? timeAgo(alert.flaggedAt) : 'recently'}
+                  </div>
+                </div>
               </div>
 
-              <div className="col-span-2">
-                <span className={getRiskBadgeClass(alert.riskLevel)}>
+              {/* Risk Level */}
+              <div>
+                <span className={getRiskBadgeClass(alert.riskLevel || 'high')}>
                   {alert.riskLevel === 'high' && <AlertTriangle size={12} />}
-                  {alert.riskLevel.toUpperCase()}
+                  {(alert.riskLevel || 'HIGH').toUpperCase()}
                 </span>
-                {alert.q9Override && (
-                  <p className="text-[10px] font-bold text-red-400 mt-1">Q9 OVERRIDE</p>
+                {isQ9 && (
+                  <div style={{ fontSize: '10px', fontWeight: 800, color: '#DC2626', marginTop: '4px', letterSpacing: '0.04em' }}>
+                    🚨 Q9 OVERRIDE
+                  </div>
                 )}
               </div>
 
-              <div className="col-span-2">
-                <p className="text-sm font-bold text-slate-200">{alert.latestScore}</p>
-                <p className="text-[10px] text-slate-500">Combined</p>
+              {/* Latest Score */}
+              <div>
+                <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  {alert.latestScore ?? '—'} <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)' }}>/ 48</span>
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-faint)' }}>PHQ-9 + GAD-7</div>
               </div>
 
-              <div className="col-span-2">
-                <span className={`text-xs font-semibold px-2 py-1 rounded-md ${
-                  alert.trend === 'rising' || alert.trend === 'q9-override'
-                    ? 'bg-red-400/10 text-red-400'
-                    : 'bg-surface-subtle text-slate-400'
-                }`}>
-                  {alert.trend === 'rising' || alert.trend === 'q9-override' ? '↑ Rising' : '→ Stable'}
+              {/* Trend */}
+              <div>
+                <span style={{
+                  fontSize: '12px', fontWeight: 600, padding: '4px 10px', borderRadius: '6px',
+                  display: 'inline-flex', alignItems: 'center', gap: '4px',
+                  background: isQ9 || alert.trend === 'rising' ? '#FEF2F2' : '#F1F5F9',
+                  color: isQ9 || alert.trend === 'rising' ? '#DC2626' : '#475569',
+                  border: isQ9 || alert.trend === 'rising' ? '1px solid #FECACA' : '1px solid #E2E8F0'
+                }}>
+                  {isQ9 ? '🚨 Severe Trigger' : (alert.trend === 'rising' ? '↑ Rising Distress' : '→ Sustained')}
                 </span>
               </div>
 
-              <div className="col-span-3 flex items-center justify-end gap-2">
+              {/* Actions */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
                 <button
                   onClick={() => handleResolveAlert(alert.id)}
-                  className="btn btn-sm btn-ghost border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                  disabled={resolvingId === alert.id}
+                  className="btn"
+                  style={{
+                    background: '#F0FDF4', color: '#16A34A', border: '1px solid #BBF7D0',
+                    fontSize: '12px', padding: '6px 12px', borderRadius: '8px', fontWeight: 600
+                  }}
                 >
-                  <CheckCircle size={14} /> Resolve
+                  <CheckCircle size={14} />
+                  {resolvingId === alert.id ? 'Resolving…' : 'Resolve'}
                 </button>
-                <button className="btn btn-sm btn-primary bg-indigo-600 hover:bg-indigo-500">
-                  <Phone size={14} /> Contact
-                </button>
+                <a
+                  href={`mailto:${alert.email || ''}`}
+                  className="btn btn-primary"
+                  style={{ fontSize: '12px', padding: '6px 12px', borderRadius: '8px' }}
+                >
+                  <Mail size={13} />
+                  Contact
+                </a>
               </div>
             </div>
-          ))}
+          );
+        })}
 
-          {/* Empty state — no alerts */}
-          {!loading && !error && alerts.length === 0 && (
+        {/* Empty State */}
+        {!loading && !error && alerts.length === 0 && (
+          <div style={{
+            padding: '56px 20px', textAlign: 'center',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px'
+          }}>
             <div style={{
-              padding: '48px', textAlign: 'center',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
+              width: '52px', height: '52px', borderRadius: '50%',
+              background: '#F0FDF4', color: '#16A34A', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', marginBottom: '4px'
             }}>
-              <Inbox size={36} style={{ color: '#4ade80', opacity: 0.6 }} />
-              <p style={{ fontSize: '14px', fontWeight: 600, color: '#e2e8f0' }}>All clear</p>
-              <p style={{ fontSize: '12px', color: '#9090a8' }}>
-                No active escalations for your institute right now.
-              </p>
+              <Inbox size={26} />
             </div>
-          )}
-        </div>
+            <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+              All Clear — No Active Escalations
+            </div>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', maxWidth: '360px', margin: 0 }}>
+              There are currently no high-risk flags or active emergency alerts requiring counsellor review for your institute.
+            </p>
+          </div>
+        )}
       </div>
 
-      <div className="mt-6 p-4 rounded-xl bg-bg-900 border border-surface-border flex items-start gap-3">
-        <ShieldAlert size={16} className="text-slate-400 mt-0.5 flex-shrink-0" />
-        <p className="text-xs text-slate-400 leading-relaxed">
-          <strong>Privacy Notice:</strong> This is the only view where real student identities are visible, and access is strictly limited to authorized counselling staff. Institution administrators only have access to the aggregated analytics dashboard.
+      {/* Confidentiality Notice */}
+      <div style={{
+        marginTop: '20px', padding: '14px 18px', borderRadius: '12px',
+        background: '#EFF6FF', border: '1px solid #BFDBFE', display: 'flex',
+        alignItems: 'flex-start', gap: '12px'
+      }}>
+        <ShieldAlert size={18} style={{ color: '#2563EB', flexShrink: 0, marginTop: '2px' }} />
+        <p style={{ fontSize: '12px', color: '#1E40AF', margin: 0, lineHeight: 1.5 }}>
+          <strong>Clinical Confidentiality Notice:</strong> This view is strictly restricted to certified campus counsellors. Student real identities and scores are revealed solely for the purpose of clinical triage and urgent safety intervention under campus safeguarding protocols.
         </p>
       </div>
 

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Send, Bot, User as UserIcon, AlertTriangle, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { sendChatMessage } from '../utils/api';
 
 const TOPICS = [
   { id: 't1', title: 'Managing exam stress', badge: 'Active', badgeColor: '#16A34A' },
@@ -46,26 +47,7 @@ export default function Chat() {
     const isDistressed = distressKeywords.some(w => currentInput.toLowerCase().includes(w));
 
     try {
-      let res;
-      try {
-        res = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: conversationHistory }),
-        });
-      } catch {
-        res = await fetch('http://localhost:5000/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: conversationHistory }),
-        });
-      }
-
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-
-      const data = await res.json();
+      const data = await sendChatMessage(conversationHistory);
       const botReply = data.reply || "I'm listening and here to support you.";
 
       addChatMessage({

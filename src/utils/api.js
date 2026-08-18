@@ -101,3 +101,12 @@ export const updateAlertStatus = (id, status, notes) => request(`/admin/alerts/$
   method: 'PUT',
   body: JSON.stringify({ status, notes })
 });
+
+// ============================================================
+// AI Chatbot APIs
+// ============================================================
+export const sendChatMessage = (messages) => request('/chat', {
+  method: 'POST',
+  body: JSON.stringify({ messages })
+});
+

@@ -97,17 +97,17 @@ function AdminFooterLogin() {
     setError("");
     try {
       try {
-        await loginUser(email, password, "counsellor");
+        await loginUser(email, password, "admin");
       } catch (err) {
         if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") {
-          await registerUser(email, password, "counsellor");
+          await registerUser(email, password, "admin");
         } else {
           throw err;
         }
       }
       navigate("/admin");
     } catch (err) {
-      setError(err.message || "Failed to sign in as counsellor.");
+      setError(err.message || "Failed to sign in as admin.");
     } finally {
       setLoading(false);
     }

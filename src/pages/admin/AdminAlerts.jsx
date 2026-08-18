@@ -1,29 +1,29 @@
 import { useState, useEffect } from 'react';
-import { MOCK_COUNSELLOR_ALERTS } from '../../data/mockData';
 import { getRiskBadgeClass, timeAgo } from '../../utils/riskEngine';
-import { AlertTriangle, UserPlus, Phone, ShieldAlert, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Phone, ShieldAlert, CheckCircle, RefreshCw, Inbox } from 'lucide-react';
 import { getAlerts, updateAlertStatus } from '../../utils/api';
 
 export default function AdminAlerts() {
-  const [alerts, setAlerts] = useState(MOCK_COUNSELLOR_ALERTS);
+  const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    async function loadAlerts() {
-      try {
-        const liveAlerts = await getAlerts();
-        if (Array.isArray(liveAlerts) && liveAlerts.length > 0) {
-          setAlerts(liveAlerts);
-        }
-      } catch (err) {
-        console.warn('Could not fetch active alerts from backend. Displaying prototype data.');
-      } finally {
-        setLoading(false);
-      }
+  async function loadAlerts() {
+    setLoading(true);
+    setError(null);
+    try {
+      const liveAlerts = await getAlerts();
+      setAlerts(Array.isArray(liveAlerts) ? liveAlerts : []);
+    } catch (err) {
+      console.error('Failed to fetch alerts:', err);
+      setError(err.message || 'Could not load alerts. Check your API configuration.');
+      setAlerts([]);
+    } finally {
+      setLoading(false);
     }
+  }
 
-    loadAlerts();
-  }, []);
+  useEffect(() => { loadAlerts(); }, []);
 
   const handleResolveAlert = async (id) => {
     try {
@@ -36,15 +36,43 @@ export default function AdminAlerts() {
 
   return (
     <div className="page animate-fade-in">
-      <div className="page-header">
-        <h1 className="flex items-center gap-2 text-red-400">
-          <ShieldAlert size={24} />
-          Active Escalations
-        </h1>
-        <p>Students flagged as Medium or High risk requiring counsellor review.</p>
+      <div className="page-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div>
+          <h1 className="flex items-center gap-2 text-red-400">
+            <ShieldAlert size={24} />
+            Active Escalations
+          </h1>
+          <p>Students flagged as Medium or High risk requiring counsellor review.</p>
+        </div>
+        <button
+          onClick={loadAlerts}
+          disabled={loading}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            padding: '6px 12px', borderRadius: '8px', fontSize: '12px',
+            fontWeight: 600, border: '1px solid #2a2a3a',
+            background: 'transparent', color: '#9090a8', cursor: 'pointer',
+          }}
+        >
+          <RefreshCw size={13} style={{ animation: loading ? 'spin 0.8s linear infinite' : 'none' }} />
+          Refresh
+        </button>
       </div>
 
+      {/* Error banner */}
+      {error && (
+        <div style={{
+          marginBottom: '20px', padding: '12px 16px', borderRadius: '10px',
+          background: '#2a1a1a', border: '1px solid #f87171', color: '#f87171',
+          fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px',
+        }}>
+          <AlertTriangle size={15} />
+          {error}
+        </div>
+      )}
+
       <div className="bg-bg-800 border border-surface-border rounded-2xl overflow-hidden">
+        {/* Table header */}
         <div className="grid grid-cols-12 gap-4 p-4 border-b border-surface-border bg-bg-900 text-xs font-semibold text-slate-400 uppercase tracking-wider">
           <div className="col-span-3">Student</div>
           <div className="col-span-2">Risk Level</div>
@@ -54,7 +82,16 @@ export default function AdminAlerts() {
         </div>
 
         <div className="divide-y divide-surface-subtle">
-          {alerts.map((alert) => (
+          {/* Loading skeleton */}
+          {loading && (
+            <div style={{ padding: '40px', textAlign: 'center', color: '#9090a8', fontSize: '13px' }}>
+              <RefreshCw size={24} style={{ margin: '0 auto 12px', opacity: 0.4, animation: 'spin 0.8s linear infinite' }} />
+              Loading escalations…
+            </div>
+          )}
+
+          {/* Real alert rows */}
+          {!loading && alerts.map((alert) => (
             <div key={alert.id} className="grid grid-cols-12 gap-4 p-4 items-center hover:bg-bg-900/50 transition-colors">
               <div className="col-span-3">
                 <p className="text-sm font-bold text-slate-200">{alert.realName}</p>
@@ -100,9 +137,18 @@ export default function AdminAlerts() {
               </div>
             </div>
           ))}
-          {alerts.length === 0 && (
-            <div className="p-8 text-center text-slate-500 text-sm">
-              No active escalations found for your institute.
+
+          {/* Empty state — no alerts */}
+          {!loading && !error && alerts.length === 0 && (
+            <div style={{
+              padding: '48px', textAlign: 'center',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
+            }}>
+              <Inbox size={36} style={{ color: '#4ade80', opacity: 0.6 }} />
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#e2e8f0' }}>All clear</p>
+              <p style={{ fontSize: '12px', color: '#9090a8' }}>
+                No active escalations for your institute right now.
+              </p>
             </div>
           )}
         </div>
@@ -114,6 +160,8 @@ export default function AdminAlerts() {
           <strong>Privacy Notice:</strong> This is the only view where real student identities are visible, and access is strictly limited to authorized counselling staff. Institution administrators only have access to the aggregated analytics dashboard.
         </p>
       </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

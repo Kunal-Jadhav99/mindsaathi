@@ -21,8 +21,32 @@ import Profile from './pages/Profile';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminAlerts from './pages/admin/AdminAlerts';
 
+/** Full-screen spinner shown while Firebase auth + profile resolve */
+function AppLoader() {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      minHeight: '100vh', background: 'var(--page-bg)',
+      flexDirection: 'column', gap: '16px',
+    }}>
+      <div style={{
+        width: '40px', height: '40px', borderRadius: '50%',
+        border: '3px solid var(--primary-light)',
+        borderTopColor: 'var(--primary)',
+        animation: 'spin 0.8s linear infinite',
+      }} />
+      <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>
+        Loading MindSaathi…
+      </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
+
 function ProtectedRoute({ children, allowedRoles }) {
-  const { isLoggedIn, role } = useApp();
+  const { isLoggedIn, role, loading } = useApp();
+  // Wait for auth + profile to resolve before making routing decisions
+  if (loading) return <AppLoader />;
   if (!isLoggedIn) return <Navigate to="/" replace />;
   if (allowedRoles && !allowedRoles.includes(role)) return <Navigate to="/" replace />;
   return children;
@@ -37,7 +61,10 @@ function StudentRoute({ children }) {
 }
 
 export default function App() {
-  const { isLoggedIn, role } = useApp();
+  const { isLoggedIn, role, loading } = useApp();
+
+  // Block rendering until auth state + role are fully resolved
+  if (loading) return <AppLoader />;
 
   return (
     <Router>
@@ -48,7 +75,7 @@ export default function App() {
           element={
             !isLoggedIn
               ? <Landing />
-              : <Navigate to={role === 'admin' ? '/admin' : '/dashboard'} replace />
+              : <Navigate to={(role === 'admin' || role === 'counsellor') ? '/admin' : '/dashboard'} replace />
           }
         />
 
@@ -63,8 +90,8 @@ export default function App() {
         <Route path="/profile"    element={<StudentRoute><Profile /></StudentRoute>} />
 
         {/* Admin routes */}
-        <Route path="/admin"        element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
-        <Route path="/admin/alerts" element={<ProtectedRoute allowedRoles={['admin']}><AdminAlerts /></ProtectedRoute>} />
+        <Route path="/admin"        element={<ProtectedRoute allowedRoles={['admin', 'counsellor']}><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin/alerts" element={<ProtectedRoute allowedRoles={['admin', 'counsellor']}><AdminAlerts /></ProtectedRoute>} />
       </Routes>
 
       {/* SOS overlay — student only */}

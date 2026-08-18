@@ -102,6 +102,11 @@ export const updateAlertStatus = (id, status, notes) => request(`/admin/alerts/$
   body: JSON.stringify({ status, notes })
 });
 
+export const seedAdminData = () => request('/admin/seed', {
+  method: 'POST'
+});
+
+
 // ============================================================
 // AI Chatbot APIs
 // ============================================================

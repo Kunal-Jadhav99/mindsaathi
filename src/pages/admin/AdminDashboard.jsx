@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line } from 'recharts';
-import { Users, TrendingUp, AlertTriangle, RefreshCw } from 'lucide-react';
-import { getAdminSummary, getDeptStats as apiGetDeptStats, getWeeklyTrends as apiGetWeeklyTrends } from '../../utils/api';
+import { Users, TrendingUp, AlertTriangle, RefreshCw, Sparkles, CheckCircle2 } from 'lucide-react';
+import { getAdminSummary, getDeptStats as apiGetDeptStats, getWeeklyTrends as apiGetWeeklyTrends, seedAdminData } from '../../utils/api';
 
 function EmptyChart({ message }) {
   return (
@@ -20,6 +20,8 @@ export default function AdminDashboard() {
   const [deptStats, setDeptStats] = useState([]);
   const [weeklyTrend, setWeeklyTrend] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [seeding, setSeeding] = useState(false);
+  const [seedSuccess, setSeedSuccess] = useState('');
   const [error, setError] = useState(null);
 
   async function loadDashboardData() {
@@ -57,6 +59,21 @@ export default function AdminDashboard() {
     }
   }
 
+  async function handleSeedData() {
+    setSeeding(true);
+    setSeedSuccess('');
+    setError(null);
+    try {
+      const res = await seedAdminData();
+      setSeedSuccess(res.message || 'Successfully seeded 2 days of student data into Firestore!');
+      await loadDashboardData();
+    } catch (err) {
+      setError(err.message || 'Failed to seed demo data. Ensure Firebase credentials are configured on the backend.');
+    } finally {
+      setSeeding(false);
+    }
+  }
+
   useEffect(() => { loadDashboardData(); }, []);
 
   return (
@@ -67,6 +84,20 @@ export default function AdminDashboard() {
           <p>Identity-blind aggregated trends across all departments.</p>
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button
+            onClick={handleSeedData}
+            disabled={seeding || loading}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '6px 14px', borderRadius: '8px', fontSize: '12px',
+              fontWeight: 600, border: '1px solid #7c6af7',
+              background: '#7c6af720', color: '#a78bfa', cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <Sparkles size={13} style={{ animation: seeding ? 'spin 0.8s linear infinite' : 'none' }} />
+            {seeding ? 'Seeding 2-Day Data…' : '⚡ Seed 2-Day Data'}
+          </button>
           <button
             onClick={loadDashboardData}
             disabled={loading}
@@ -85,6 +116,19 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Success banner */}
+      {seedSuccess && (
+        <div style={{
+          marginBottom: '20px', padding: '12px 16px', borderRadius: '10px',
+          background: '#142a1f', border: '1px solid #4ade80', color: '#4ade80',
+          fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px',
+        }}>
+          <CheckCircle2 size={15} />
+          {seedSuccess}
+        </div>
+      )}
+
 
       {/* Error banner */}
       {error && (

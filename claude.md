@@ -18,7 +18,7 @@ It combines a chatbot, a mood tracker, and a pseudonymous peer forum with a core
 - **Styling:** Tailwind CSS v3, Custom CSS (dark-theme, gradients)
 - **Icons:** Lucide React
 - **Charts:** Recharts
-- **Backend/DB:** Node/Express, Firebase (Firestore/Auth), Gemini API (Chatbot & Moderation) — *Note: Actively implementing the backend service.*
+- **Backend/DB:** Node/Express, Firebase (Firestore/Auth), Groq API (openai/gpt-oss-120b) (Chatbot & Moderation) — *Note: Actively implementing the backend service.*
 
 ## Current Prototype State
 All key screens and flows for the frontend prototype are implemented:
@@ -51,9 +51,9 @@ To allow parallel development and avoid code conflicts, the backend architecture
 - **Person B (Teammate) — AI Chatbot, Forum & Moderation Services:**
   - Develop Pseudonymous Peer Forum APIs (`forumRoutes.js`, `forumController.js`).
   - Integrate AI Chatbot endpoints (`chatRoutes.js`, `chatController.js`).
-  - Build `aiService.js` using the Gemini API for natural language conversational therapy & automated risk analysis.
+  - Build `aiService.js` using the Groq SDK (`openai/gpt-oss-120b`) for natural language conversational therapy & automated risk analysis.
   - Build `moderationService.js` to automatically filter, approve, or flag forum posts for distress/toxicity before publication.
 
 ### 2. AI Model Integration Details
-- **Chatbot:** Utilizes Gemini (via `@google/generative-ai` SDK) to simulate empathetic mental health conversations. It parses chat logs in real-time, calculates sentiment, and flags immediate distress triggers (e.g. self-harm concepts) to trigger risk-triage overrides.
-- **Forum Monitor:** Submissions to the Peer Forum are automatically analyzed by Gemini before being approved. If the AI detects abusive content or severe self-harm ideation, the post is automatically quarantined (moderationStatus set to `flagged`) and an escalation alert is immediately generated for the college counsellors to view on the Admin Alerts panel.
+- **Chatbot:** Utilizes `openai/gpt-oss-120b` (via `groq-sdk`) to simulate empathetic mental health conversations. It parses chat logs in real-time, calculates sentiment, and flags immediate distress triggers (e.g. self-harm concepts) to trigger risk-triage overrides.
+- **Forum Monitor:** Submissions to the Peer Forum are automatically analyzed by `openai/gpt-oss-120b` (Groq) before being approved. If the AI detects abusive content or severe self-harm ideation, the post is automatically quarantined (moderationStatus set to `flagged`) and an escalation alert is immediately generated for the college counsellors to view on the Admin Alerts panel.

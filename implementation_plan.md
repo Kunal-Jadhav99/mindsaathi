@@ -3,7 +3,7 @@
 Introduce a fully functional Node.js/Express backend for MindSaathi, replacing the local mock data simulation. This backend will:
 1. Connect with **Firebase Authentication** and **Firestore** for secure database operations.
 2. Expose REST endpoints for clinical check-ins, journal entries, and institution-wide admin dashboards.
-3. Integrate the **Gemini API** for an empathetic chatbot and automated sentiment-based forum post moderation.
+3. Integrate the **Groq API** (`openai/gpt-oss-120b`) for an empathetic chatbot and automated sentiment-based forum post moderation.
 4. Establish a modular codebase structure to allow two developers (Person A and Person B) to work concurrently without merge conflicts.
 
 ---
@@ -22,7 +22,7 @@ To prevent file-level git conflicts, we will structure the `backend/` folder int
 ### Person B (Teammate) — AI & Forum Services
 - **Pseudonymous Peer Forum API:** Endpoints in `forumRoutes.js` and `forumController.js` handling creation, listing, liking, commenting, and filtering.
 - **AI Chatbot Endpoint:** Dialog management and history endpoints in `chatRoutes.js` and `chatController.js`.
-- **Gemini service wrapper:** Asynchronous interface in `backend/services/aiService.js` handling prompts, model settings, and streaming.
+- **Groq service wrapper:** Asynchronous interface in `backend/services/aiService.js` handling prompts, model settings, and response generation.
 - **Automatic moderation service:** Automated toxicity and risk classification in `backend/services/moderationService.js` to screen posts for self-harm concepts.
 
 ---
@@ -33,7 +33,7 @@ Please make sure the following files are added locally and kept secure (already 
 1. **`.env` file in `backend/`:**
    ```env
    PORT=5000
-   GEMINI_API_KEY=your_gemini_api_key_here
+   GROQ_API_KEY=your_groq_api_key_here
    FIREBASE_PROJECT_ID=your_firebase_project_id_here
    ```
 2. **Firebase Account JSON in `backend/config/firebase-service-account.json`:**
@@ -78,7 +78,7 @@ backend/
 
 ### Automated Tests
 - Construct local HTTP test scripts in `backend/tests/api.test.http` to test controllers.
-- Write a validation script `backend/scripts/testGemini.js` to assert Gemini model connectivity.
+- Write a validation script `backend/scripts/testGroq.js` to assert Groq model connectivity.
 
 ### Manual Verification
 - Deploy server locally on port `5000` via `npm run dev`.

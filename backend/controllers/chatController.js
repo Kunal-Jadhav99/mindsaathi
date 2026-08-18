@@ -1,16 +1,27 @@
-// ============================================================
-// Chat Controller — Placeholder for Person B (Teammate)
-// ============================================================
-// This file will contain:
-// - Get chat history for a user
-// - Send message to AI chatbot (via aiService)
-// - Flag distressed messages and trigger escalation
-// ============================================================
+import { getChatResponse } from '../services/aiService.js';
 
-export const getChatHistory = async (req, res) => {
-  res.json({ message: 'Chat getChatHistory — placeholder for Person B' });
-};
-
+/**
+ * Handles incoming chat messages and responds via Groq AI Service.
+ * @route POST /api/chat
+ * @param {Object} req.body - { messages: Array<{role: string, content: string}> | string }
+ */
 export const sendMessage = async (req, res) => {
-  res.json({ message: 'Chat sendMessage — placeholder for Person B' });
+  try {
+    const { messages } = req.body;
+
+    if (!messages) {
+      return res.status(400).json({ error: 'Invalid request: "messages" field is required.' });
+    }
+
+    // Call Groq AI Service
+    const reply = await getChatResponse(messages);
+
+    return res.status(200).json({ reply });
+  } catch (error) {
+    console.error('Error in chatController.sendMessage:', error);
+    return res.status(500).json({
+      error: 'Failed to process chat message',
+      details: error.message,
+    });
+  }
 };

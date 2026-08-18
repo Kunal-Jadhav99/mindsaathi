@@ -1,10 +1,9 @@
 import express from 'express';
+import { sendMessage } from '../controllers/chatController.js';
 
 const router = express.Router();
 
-// Placeholder routes for Person B
-router.get('/', (req, res) => {
-  res.json({ message: 'Chat placeholder endpoint' });
-});
+// POST /api/chat - Generate AI response from Groq AI service
+router.post('/', sendMessage);
 
 export default router;

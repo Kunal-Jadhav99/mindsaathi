@@ -22,9 +22,9 @@ export default function Chat() {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, isTyping]);
 
-  function send(e) {
+  async function send(e) {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || isTyping) return;
 
     const userMsg = {
       id: `m_${Date.now()}`,
@@ -33,24 +33,60 @@ export default function Chat() {
       timestamp: new Date().toISOString(),
     };
     addChatMessage(userMsg);
+    const currentInput = input.trim();
     setInput('');
     setTyping(true);
 
-    setTimeout(() => {
-      setTyping(false);
-      const distress = ['sad','kill','die','hurt','overwhelmed','depressed','anxious'];
-      const isDistressed = distress.some(w => userMsg.content.toLowerCase().includes(w));
+    const conversationHistory = [...chatMessages, userMsg].map(m => ({
+      role: m.role === 'user' ? 'user' : 'assistant',
+      content: m.content,
+    }));
+
+    const distressKeywords = ['sad', 'kill', 'die', 'hurt', 'overwhelmed', 'depressed', 'anxious', 'suicide', 'self-harm'];
+    const isDistressed = distressKeywords.some(w => currentInput.toLowerCase().includes(w));
+
+    try {
+      let res;
+      try {
+        res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: conversationHistory }),
+        });
+      } catch {
+        res = await fetch('http://localhost:5000/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: conversationHistory }),
+        });
+      }
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      const botReply = data.reply || "I'm listening and here to support you.";
 
       addChatMessage({
         id: `m_${Date.now() + 1}`,
         role: 'bot',
-        content: isDistressed
-          ? "I'm hearing that things are really difficult right now. Your wellbeing is important. Could we take 3 minutes to do a quick check-in? It helps me understand how best to support you."
-          : "I hear you. Dealing with that isn't easy. What has helped you manage similar situations in the past?",
+        content: botReply,
         timestamp: new Date().toISOString(),
         triggeredCheckin: isDistressed,
       });
-    }, 1500);
+    } catch (error) {
+      console.error('Chat API call failed:', error);
+      addChatMessage({
+        id: `m_${Date.now() + 1}`,
+        role: 'bot',
+        content: "I'm having trouble connecting to the AI service. Please ensure the backend server is running on port 5000.",
+        timestamp: new Date().toISOString(),
+        triggeredCheckin: isDistressed,
+      });
+    } finally {
+      setTyping(false);
+    }
   }
 
   function fmtTime(iso) {
@@ -195,7 +231,7 @@ export default function Chat() {
             </button>
           </form>
           <p style={{ fontSize: '11px', color: 'var(--text-faint)', marginTop: '6px', textAlign: 'center' }}>
-            Prototype: responses are simulated. Production connects to a Python NLP microservice.
+            MindSaathi AI powered by Groq (openai/gpt-oss-120b) · Sensitive & Empathetic Companion
           </p>
         </div>
       </div>

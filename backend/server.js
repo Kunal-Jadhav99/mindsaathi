@@ -8,8 +8,8 @@ dotenv.config();
 // Route Imports
 import userRoutes from './routes/userRoutes.js';
 import checkinRoutes from './routes/checkinRoutes.js';
-// import journalRoutes from './routes/journalRoutes.js';
-// import adminRoutes from './routes/adminRoutes.js';
+import journalRoutes from './routes/journalRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 import forumRoutes from './routes/forumRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 
@@ -28,8 +28,8 @@ app.get('/api/health', (req, res) => {
 // Mounting Routes
 app.use('/api/users', userRoutes);
 app.use('/api/checkins', checkinRoutes);
-// app.use('/api/journals', journalRoutes);
-// app.use('/api/admin', adminRoutes);
+app.use('/api/journals', journalRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Part B Routes (Teammate's scope)
 app.use('/api/forum', forumRoutes);

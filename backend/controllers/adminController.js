@@ -238,3 +238,5 @@ export const getSummary = async (req, res) => {
     return res.status(500).json({ error: 'Server Error', message: 'Could not fetch institution summary.' });
   }
 };
+
+

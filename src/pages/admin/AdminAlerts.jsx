@@ -1,15 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getRiskBadgeClass, timeAgo } from '../../utils/riskEngine';
-import { AlertTriangle, Phone, ShieldAlert, CheckCircle, RefreshCw, Inbox, ArrowLeft, Mail } from 'lucide-react';
+import { AlertTriangle, Phone, ShieldAlert, CheckCircle, RefreshCw, Inbox, ArrowLeft, Mail, LogOut } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
 import { getAlerts, updateAlertStatus } from '../../utils/api';
 
 export default function AdminAlerts() {
   const navigate = useNavigate();
+  const { logout } = useApp();
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [resolvingId, setResolvingId] = useState(null);
   const [error, setError] = useState(null);
+
+  async function handleLogout() {
+    await logout();
+    navigate('/');
+  }
 
   async function loadAlerts() {
     setLoading(true);
@@ -73,15 +80,31 @@ export default function AdminAlerts() {
           </p>
         </div>
 
-        <button
-          onClick={loadAlerts}
-          disabled={loading}
-          className="btn btn-outline"
-          style={{ fontSize: '12px', padding: '7px 12px', borderRadius: '8px' }}
-        >
-          <RefreshCw size={13} style={{ animation: loading ? 'spin 0.8s linear infinite' : 'none' }} />
-          Refresh
-        </button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            onClick={loadAlerts}
+            disabled={loading}
+            className="btn btn-outline"
+            style={{ fontSize: '12px', padding: '7px 12px', borderRadius: '8px' }}
+          >
+            <RefreshCw size={13} style={{ animation: loading ? 'spin 0.8s linear infinite' : 'none' }} />
+            Refresh
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="btn"
+            style={{
+              background: '#F8FAFC', color: 'var(--danger)', border: '1px solid #FECACA',
+              fontSize: '12px', padding: '7px 14px', borderRadius: '8px', fontWeight: 600
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = '#FEF2F2'}
+            onMouseLeave={e => e.currentTarget.style.background = '#F8FAFC'}
+          >
+            <LogOut size={13} />
+            Log Out
+          </button>
+        </div>
       </div>
 
       {/* ── Error Banner ── */}

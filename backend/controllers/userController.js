@@ -89,7 +89,7 @@ export const updateProfile = async (req, res) => {
 
 /** Set user role & institute details directly */
 export const setRole = async (req, res) => {
-  const { uid } = req.user;
+  const { uid, email } = req.user;
   const { role, instituteId } = req.body;
 
   if (!['student', 'admin', 'counsellor'].includes(role)) {
@@ -102,12 +102,34 @@ export const setRole = async (req, res) => {
 
   try {
     const userDocRef = db.collection('users').doc(uid);
+    const userDoc = await userDocRef.get();
+
+    if (!userDoc.exists) {
+      // Document does not exist yet — create with complete profile defaults
+      const newProfile = {
+        uid,
+        email: email || '',
+        pseudonym: generateRandomPseudonym(),
+        avatarColor: RANDOM_COLORS[Math.floor(Math.random() * RANDOM_COLORS.length)],
+        streak: 1,
+        joinedAt: new Date().toISOString(),
+        role,
+        instituteId: instituteId || 'default-institute',
+        department: 'Computer Science',
+        onboarded: false
+      };
+      await userDocRef.set(newProfile);
+      return res.status(201).json({ success: true, role, instituteId: newProfile.instituteId, ...newProfile });
+    }
+
     const updates = { role };
     if (instituteId) updates.instituteId = instituteId;
 
-    await userDocRef.update(updates);
-    return res.json({ success: true, role, instituteId: updates.instituteId });
+    await userDocRef.set(updates, { merge: true });
+    return res.json({ success: true, role, instituteId: updates.instituteId || userDoc.data().instituteId });
   } catch (error) {
+    console.error('Error setting user role:', error);
     return res.status(500).json({ error: 'Server Error', message: error.message });
   }
 };
+

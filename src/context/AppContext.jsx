@@ -44,17 +44,20 @@ export function AppProvider({ children }) {
     return () => unsubscribe();
   }, []);
 
-  async function loadBackendData() {
+  async function loadBackendData(fallbackRole = 'student') {
     try {
       // 1. Fetch User Profile from Backend
       const profile = await getUserProfile();
       if (profile) {
         setUser(profile);
-        setRole(profile.role || 'student');
+        setRole(profile.role || fallbackRole);
         setOnboarded(profile.onboarded || false);
+      } else {
+        setRole(prev => prev || fallbackRole);
       }
     } catch (err) {
       console.warn('Could not fetch user profile from backend server:', err.message);
+      setRole(prev => prev || fallbackRole);
     }
 
     try {
@@ -79,6 +82,7 @@ export function AppProvider({ children }) {
 
       // Sync role if requested
       if (requestedRole) {
+        setRole(requestedRole);
         try {
           await apiSetUserRole(requestedRole);
         } catch (e) {
@@ -86,7 +90,7 @@ export function AppProvider({ children }) {
         }
       }
 
-      await loadBackendData();
+      await loadBackendData(requestedRole);
       return { success: true };
     } catch (err) {
       console.error('Firebase Auth error:', err.code, err.message);
@@ -108,13 +112,16 @@ export function AppProvider({ children }) {
       setIsLoggedIn(true);
 
       // Sync user profile & role on backend
-      try {
-        await apiSetUserRole(role);
-      } catch (e) {
-        console.warn('Could not set initial role:', e.message);
+      if (role) {
+        setRole(role);
+        try {
+          await apiSetUserRole(role);
+        } catch (e) {
+          console.warn('Could not set initial role:', e.message);
+        }
       }
 
-      await loadBackendData();
+      await loadBackendData(role);
       return { success: true };
     } catch (err) {
       console.error('Registration error:', err.message);

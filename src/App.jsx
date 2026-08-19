@@ -48,7 +48,8 @@ function ProtectedRoute({ children, allowedRoles }) {
   // Wait for auth + profile to resolve before making routing decisions
   if (loading) return <AppLoader />;
   if (!isLoggedIn) return <Navigate to="/" replace />;
-  if (allowedRoles && !allowedRoles.includes(role)) return <Navigate to="/" replace />;
+  const effectiveRole = role || 'student';
+  if (allowedRoles && !allowedRoles.includes(effectiveRole)) return <Navigate to="/" replace />;
   return children;
 }
 

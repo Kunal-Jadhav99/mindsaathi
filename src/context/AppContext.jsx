@@ -103,7 +103,7 @@ export function AppProvider({ children }) {
   }
 
   // Real Register via Firebase Auth
-  async function registerUser(email, password, role = 'student') {
+  async function registerUser(email, password, role = 'student', extraProfile = {}) {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
@@ -115,7 +115,7 @@ export function AppProvider({ children }) {
       if (role) {
         setRole(role);
         try {
-          await apiSetUserRole(role);
+          await apiSetUserRole(role, extraProfile);
         } catch (e) {
           console.warn('Could not set initial role:', e.message);
         }

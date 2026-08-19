@@ -164,6 +164,9 @@ export default function Landing() {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [realName, setRealName] = useState("");
+  const [department, setDepartment] = useState("Computer Science");
+  const [year, setYear] = useState("1st Year");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -176,7 +179,7 @@ export default function Landing() {
 
     try {
       if (isRegisterMode) {
-        await registerUser(email, password, "student");
+        await registerUser(email, password, "student", { realName, department, year });
         navigate("/onboarding");
       } else {
         await loginUser(email, password, "student");
@@ -303,20 +306,74 @@ export default function Landing() {
               <div className="reveal-child-4 rounded-[1.5rem] border border-surface-border bg-white p-4 sm:p-5">
                 <div className="mb-5">
                   <p className="text-2xl font-bold text-slate-100">{isRegisterMode ? "Create Account" : "Welcome back"}</p>
-                  <p className="mt-1 text-sm text-slate-500">{isRegisterMode ? "Register with your student email" : "Sign in to continue your journey"}</p>
+                  <p className="mt-1 text-sm text-slate-500">{isRegisterMode ? "Register with your student profile details" : "Sign in to continue your journey"}</p>
                 </div>
 
                 {error && <p className="mb-3 text-xs text-red-500 font-medium">{error}</p>}
 
                 <form onSubmit={handleLogin} className="space-y-4">
+                  {isRegisterMode && (
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Full Name</label>
+                      <input
+                        id="register-name"
+                        type="text"
+                        className="input"
+                        placeholder="e.g. Aarav Sharma"
+                        value={realName}
+                        onChange={(e) => setRealName(e.target.value)}
+                        required={isRegisterMode}
+                      />
+                    </div>
+                  )}
+
                   <div>
                     <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Email address</label>
                     <input id="login-email" type="email" className="input" placeholder="you@college.edu" value={email} onChange={(e) => setEmail(e.target.value)} required />
                   </div>
+
                   <div>
                     <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Password</label>
                     <input id="login-password" type="password" className="input" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
                   </div>
+
+                  {isRegisterMode && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Department</label>
+                        <select
+                          className="input"
+                          value={department}
+                          onChange={(e) => setDepartment(e.target.value)}
+                          required={isRegisterMode}
+                        >
+                          <option value="Computer Science">Computer Science</option>
+                          <option value="Information Tech">Information Tech</option>
+                          <option value="Electronics">Electronics</option>
+                          <option value="Mechanical Engg">Mechanical Engg</option>
+                          <option value="Civil Engg">Civil Engg</option>
+                          <option value="Business Mgmt">Business Mgmt</option>
+                          <option value="Biotechnology">Biotechnology</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Year of Study</label>
+                        <select
+                          className="input"
+                          value={year}
+                          onChange={(e) => setYear(e.target.value)}
+                          required={isRegisterMode}
+                        >
+                          <option value="1st Year">1st Year</option>
+                          <option value="2nd Year">2nd Year</option>
+                          <option value="3rd Year">3rd Year</option>
+                          <option value="4th Year">4th Year</option>
+                          <option value="Postgraduate">Postgraduate</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
                   <button id="login-submit" type="submit" disabled={loading} className="btn btn-primary btn-lg w-full">
                     {loading ? (<><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />Processing…</>) : isRegisterMode ? "Create Account" : "Sign In"}
                   </button>

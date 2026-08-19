@@ -50,9 +50,9 @@ export const updateUserProfile = (profileData) => request('/users/profile', {
   body: JSON.stringify(profileData)
 });
 
-export const setUserRole = (role, instituteId) => request('/users/role', {
+export const setUserRole = (role, extra = {}) => request('/users/role', {
   method: 'POST',
-  body: JSON.stringify({ role, instituteId })
+  body: JSON.stringify({ role, ...extra })
 });
 
 // ============================================================
@@ -87,6 +87,20 @@ export const deleteJournal = (id) => request(`/journals/${id}`, {
 });
 
 // ============================================================
+// Peer Forum APIs
+// ============================================================
+export const getForumPosts = () => request('/forum');
+
+export const createForumPost = (content, category, tags = []) => request('/forum', {
+  method: 'POST',
+  body: JSON.stringify({ content, category, tags })
+});
+
+export const likeForumPost = (id) => request(`/forum/${id}/like`, {
+  method: 'POST'
+});
+
+// ============================================================
 // Counsellor Admin Analytics APIs
 // ============================================================
 export const getAdminSummary = () => request('/admin/summary');
@@ -109,3 +123,4 @@ export const sendChatMessage = (messages) => request('/chat', {
   method: 'POST',
   body: JSON.stringify({ messages })
 });
+

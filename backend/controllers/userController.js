@@ -87,10 +87,10 @@ export const updateProfile = async (req, res) => {
   }
 };
 
-/** Set user role & institute details directly */
+/** Set user role, institute, department, year & profile details directly */
 export const setRole = async (req, res) => {
   const { uid, email } = req.user;
-  const { role, instituteId } = req.body;
+  const { role, instituteId, department, year, realName } = req.body;
 
   if (!['student', 'admin', 'counsellor'].includes(role)) {
     return res.status(400).json({ error: 'Bad Request', message: 'Invalid role value.' });
@@ -109,13 +109,15 @@ export const setRole = async (req, res) => {
       const newProfile = {
         uid,
         email: email || '',
+        realName: realName || email?.split('@')[0] || 'Student',
         pseudonym: generateRandomPseudonym(),
         avatarColor: RANDOM_COLORS[Math.floor(Math.random() * RANDOM_COLORS.length)],
         streak: 1,
         joinedAt: new Date().toISOString(),
         role,
         instituteId: instituteId || 'default-institute',
-        department: 'Computer Science',
+        department: department || 'Computer Science',
+        year: year || '1st Year',
         onboarded: false
       };
       await userDocRef.set(newProfile);
@@ -124,12 +126,23 @@ export const setRole = async (req, res) => {
 
     const updates = { role };
     if (instituteId) updates.instituteId = instituteId;
+    if (department) updates.department = department;
+    if (year) updates.year = year;
+    if (realName) updates.realName = realName;
 
     await userDocRef.set(updates, { merge: true });
-    return res.json({ success: true, role, instituteId: updates.instituteId || userDoc.data().instituteId });
+    return res.json({
+      success: true,
+      role,
+      instituteId: updates.instituteId || userDoc.data().instituteId,
+      department: updates.department || userDoc.data().department,
+      year: updates.year || userDoc.data().year,
+      realName: updates.realName || userDoc.data().realName
+    });
   } catch (error) {
     console.error('Error setting user role:', error);
     return res.status(500).json({ error: 'Server Error', message: error.message });
   }
 };
+
 

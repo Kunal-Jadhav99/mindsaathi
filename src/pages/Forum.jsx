@@ -45,6 +45,7 @@ export default function Forum() {
   const [expandedReplies, setExpandedReplies] = useState(new Set());
   const [replyInputs, setReplyInputs] = useState({});
   const [submittingReplyId, setSubmittingReplyId] = useState(null);
+  const [moderationToast, setModerationToast] = useState(null);
 
   async function loadPosts() {
     try {
@@ -78,6 +79,11 @@ export default function Forum() {
       if (res.suicideTriggered) {
         setCrisisTriggered(true);
         openSOS(); // Immediately open crisis popup
+      }
+
+      if (res.flagged) {
+        setModerationToast('Post flagged for review by automated AI safety filters.');
+        setTimeout(() => setModerationToast(null), 5000);
       }
 
       setPosts(prev => [res, ...prev]);
@@ -129,13 +135,20 @@ export default function Forum() {
         openSOS();
       }
 
-      // Append new reply to post in UI
+      if (res.flagged || !res.success) {
+        setModerationToast(res.message || 'Reply blocked by safety moderation (violates community standards).');
+        setTimeout(() => setModerationToast(null), 5000);
+        setReplyInputs(prev => ({ ...prev, [postId]: '' }));
+        return;
+      }
+
+      // Append new approved reply to post in UI
       setPosts(prev => prev.map(p => {
         if (p.id === postId) {
           const updatedList = Array.isArray(p.repliesList) ? [...p.repliesList, res.reply] : [res.reply];
           return {
             ...p,
-            replies: updatedList.length,
+            replies: updatedList.filter(r => r.moderationStatus !== 'flagged').length,
             repliesList: updatedList
           };
         }
@@ -205,6 +218,24 @@ export default function Forum() {
           {showCompose ? 'Close Compose' : 'Create Post'}
         </button>
       </div>
+
+      {/* ── Moderation Alert Toast ── */}
+      {moderationToast && (
+        <div className="animate-fade-in" style={{
+          marginBottom: '16px', padding: '12px 18px', borderRadius: '10px',
+          background: '#FFFBEB', border: '1px solid #FDE68A', color: '#B45309',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+          fontSize: '13px', fontWeight: 600
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Shield size={16} style={{ color: '#D97706', flexShrink: 0 }} />
+            <span>{moderationToast}</span>
+          </div>
+          <button onClick={() => setModerationToast(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#B45309', padding: 0 }}>
+            <X size={15} />
+          </button>
+        </div>
+      )}
 
       {/* ── Crisis Banner (if triggered) ── */}
       {crisisTriggered && (
@@ -559,44 +590,47 @@ export default function Forum() {
                       </div>
 
                       {/* List of Replies */}
-                      {Array.isArray(post.repliesList) && post.repliesList.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          {post.repliesList.map(reply => (
-                            <div
-                              key={reply.id}
-                              style={{
-                                padding: '10px 14px', borderRadius: '10px',
-                                background: '#F8FAFC', border: '1px solid #E2E8F0'
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                  <div style={{
-                                    width: '22px', height: '22px', borderRadius: '50%',
-                                    background: `${reply.avatarColor || '#3B82F6'}25`, color: reply.avatarColor || '#3B82F6',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '11px'
-                                  }}>
-                                    {(reply.pseudonym || 'P')[0]}
+                      {(() => {
+                        const cleanList = (Array.isArray(post.repliesList) ? post.repliesList : []).filter(r => r && r.moderationStatus !== 'flagged');
+                        return cleanList.length > 0 ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {cleanList.map(reply => (
+                              <div
+                                key={reply.id}
+                                style={{
+                                  padding: '10px 14px', borderRadius: '10px',
+                                  background: '#F8FAFC', border: '1px solid #E2E8F0'
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{
+                                      width: '22px', height: '22px', borderRadius: '50%',
+                                      background: `${reply.avatarColor || '#3B82F6'}25`, color: reply.avatarColor || '#3B82F6',
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '11px'
+                                    }}>
+                                      {(reply.pseudonym || 'P')[0]}
+                                    </div>
+                                    <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                      {reply.pseudonym}
+                                    </span>
                                   </div>
-                                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                    {reply.pseudonym}
+                                  <span style={{ fontSize: '10px', color: 'var(--text-faint)' }}>
+                                    {formatTime(reply.timestamp)}
                                   </span>
                                 </div>
-                                <span style={{ fontSize: '10px', color: 'var(--text-faint)' }}>
-                                  {formatTime(reply.timestamp)}
-                                </span>
+                                <p style={{ fontSize: '13px', color: 'var(--text-body)', margin: 0, lineHeight: 1.5 }}>
+                                  {reply.content}
+                                </p>
                               </div>
-                              <p style={{ fontSize: '13px', color: 'var(--text-body)', margin: 0, lineHeight: 1.5 }}>
-                                {reply.content}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p style={{ fontSize: '12px', color: 'var(--text-faint)', fontStyle: 'italic', margin: 0 }}>
-                          No replies yet. Be the first to reply and support your peer!
-                        </p>
-                      )}
+                            ))}
+                          </div>
+                        ) : (
+                          <p style={{ fontSize: '12px', color: 'var(--text-faint)', fontStyle: 'italic', margin: 0 }}>
+                            No replies yet. Be the first to reply and support your peer!
+                          </p>
+                        );
+                      })()}
 
                       {/* Inline Reply Input */}
                       <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>

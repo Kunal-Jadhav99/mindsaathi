@@ -1,7 +1,7 @@
 import { db } from '../config/firebase.js';
 
 // ============================================================
-// Suicide & Crisis Trigger Keywords
+// Suicide, Toxicity & Harm Keywords
 // ============================================================
 const SUICIDE_KEYWORDS = [
   'suicide',
@@ -26,7 +26,37 @@ const SUICIDE_KEYWORDS = [
   'take my own life'
 ];
 
-const TOXIC_WORDS = ['stupid', 'idiot', 'hate you', 'dumb', 'ugly', 'kill you', 'die loser'];
+const TOXIC_AND_HARM_WORDS = [
+  'kill yourself',
+  'kill ur self',
+  'kys',
+  'go die',
+  'hang yourself',
+  'cut yourself',
+  'slit your',
+  'die loser',
+  'die idiot',
+  'stupid',
+  'idiot',
+  'hate you',
+  'dumb',
+  'ugly',
+  'kill you',
+  'worthless',
+  'waste of space',
+  'nobody likes you'
+];
+
+function checkToxicityAndHarm(text) {
+  const lower = text.toLowerCase();
+  const isSuicide = SUICIDE_KEYWORDS.some(k => lower.includes(k));
+  const isToxic = TOXIC_AND_HARM_WORDS.some(w => lower.includes(w));
+  return {
+    isSuicide,
+    isToxic,
+    isFlagged: isSuicide || isToxic
+  };
+}
 
 const DEFAULT_POSTS = [
   {
@@ -46,14 +76,16 @@ const DEFAULT_POSTS = [
         pseudonym: 'GentleWind33',
         avatarColor: '#3B82F6',
         content: 'Try putting your phone in another room at least 30 mins before sleeping. It made a huge difference for my anxiety.',
-        timestamp: new Date(Date.now() - 1.8 * 86400000).toISOString()
+        timestamp: new Date(Date.now() - 1.8 * 86400000).toISOString(),
+        moderationStatus: 'approved'
       },
       {
         id: 'rep_2',
         pseudonym: 'StillLake88',
         avatarColor: '#8B5CF6',
         content: 'The progressive muscle relaxation audio in the Resources tab helps me every time!',
-        timestamp: new Date(Date.now() - 1.5 * 86400000).toISOString()
+        timestamp: new Date(Date.now() - 1.5 * 86400000).toISOString(),
+        moderationStatus: 'approved'
       }
     ]
   },
@@ -74,14 +106,16 @@ const DEFAULT_POSTS = [
         pseudonym: 'BrightStar09',
         avatarColor: '#F59E0B',
         content: 'So glad it helped! The box breathing method is another great one to try when you have sudden palpitations.',
-        timestamp: new Date(Date.now() - 1.9 * 86400000).toISOString()
+        timestamp: new Date(Date.now() - 1.9 * 86400000).toISOString(),
+        moderationStatus: 'approved'
       },
       {
         id: 'rep_4',
         pseudonym: 'CalmRiver55',
         avatarColor: '#10B981',
         content: '4-7-8 is amazing. Saved me during mid-terms last semester.',
-        timestamp: new Date(Date.now() - 1.6 * 86400000).toISOString()
+        timestamp: new Date(Date.now() - 1.6 * 86400000).toISOString(),
+        moderationStatus: 'approved'
       }
     ]
   },
@@ -102,14 +136,16 @@ const DEFAULT_POSTS = [
         pseudonym: 'SilentMountain7',
         avatarColor: '#22C55E',
         content: 'Rest is part of the work! Without rest, brain fog just doubles study time anyway.',
-        timestamp: new Date(Date.now() - 2.8 * 86400000).toISOString()
+        timestamp: new Date(Date.now() - 2.8 * 86400000).toISOString(),
+        moderationStatus: 'approved'
       },
       {
         id: 'rep_6',
         pseudonym: 'QuietOwl42',
         avatarColor: '#EC4899',
         content: '100% relate. Scheduling specific break times as "mandatory maintenance" helped remove the guilt for me.',
-        timestamp: new Date(Date.now() - 2.5 * 86400000).toISOString()
+        timestamp: new Date(Date.now() - 2.5 * 86400000).toISOString(),
+        moderationStatus: 'approved'
       }
     ]
   },
@@ -130,7 +166,8 @@ const DEFAULT_POSTS = [
         pseudonym: 'DriftingCloud11',
         avatarColor: '#06B6D4',
         content: 'Proud of you! Mental health stigma in college needs to end.',
-        timestamp: new Date(Date.now() - 3.8 * 86400000).toISOString()
+        timestamp: new Date(Date.now() - 3.8 * 86400000).toISOString(),
+        moderationStatus: 'approved'
       }
     ]
   }
@@ -154,10 +191,16 @@ export const getPosts = async (req, res) => {
       const data = doc.data();
       // Show approved posts, or student's own flagged posts
       if (data.moderationStatus === 'approved' || (req.user && data.uid === req.user.uid)) {
+        // Filter out flagged replies so peers never see toxic comments
+        const cleanReplies = Array.isArray(data.repliesList)
+          ? data.repliesList.filter(r => r.moderationStatus !== 'flagged')
+          : [];
+
         posts.push({
           id: doc.id,
-          repliesList: data.repliesList || [],
-          ...data
+          ...data,
+          replies: cleanReplies.length,
+          repliesList: cleanReplies
         });
       }
     });
@@ -188,11 +231,8 @@ export const createPost = async (req, res) => {
     return res.status(400).json({ error: 'Bad Request', message: 'Post content cannot be empty.' });
   }
 
-  const textLower = content.toLowerCase();
-  const isSuicideTrigger = SUICIDE_KEYWORDS.some(keyword => textLower.includes(keyword));
-  const isToxic = TOXIC_WORDS.some(word => textLower.includes(word));
-
-  const moderationStatus = isSuicideTrigger ? 'flagged' : (isToxic ? 'flagged' : 'approved');
+  const { isSuicide, isToxic, isFlagged } = checkToxicityAndHarm(content);
+  const moderationStatus = isFlagged ? 'flagged' : 'approved';
 
   try {
     let userProfile = {};
@@ -219,7 +259,8 @@ export const createPost = async (req, res) => {
       replies: 0,
       repliesList: [],
       moderationStatus,
-      suicideFlag: isSuicideTrigger
+      suicideFlag: isSuicide,
+      toxicFlag: isToxic
     };
 
     let postId = `fp_${Date.now()}`;
@@ -227,8 +268,8 @@ export const createPost = async (req, res) => {
       const postRef = await db.collection('forum_posts').add(newPost);
       postId = postRef.id;
 
-      // 🚨 CRITICAL: If suicide trigger is detected, immediately create an active alert for counsellors
-      if (isSuicideTrigger) {
+      // 🚨 CRITICAL: If suicide trigger or extreme toxicity is detected, escalate to counsellor alerts
+      if (isSuicide || isToxic) {
         await db.collection('alerts').add({
           uid,
           instituteId,
@@ -242,21 +283,24 @@ export const createPost = async (req, res) => {
           trend: 'q9-override',
           flaggedAt: new Date().toISOString(),
           q9Override: true,
-          explanation: `🚨 Crisis Trigger in Peer Forum: "${content.trim().substring(0, 100)}..."`,
+          explanation: isSuicide
+            ? `🚨 Crisis Trigger in Peer Forum Post: "${content.trim().substring(0, 100)}..."`
+            : `⚠️ Toxic/Harassment Trigger in Peer Forum Post: "${content.trim().substring(0, 100)}..."`,
           status: 'active'
         });
 
-        console.log(`🚨 SUICIDE TRIGGER ESCALATED to Counsellor Alerts for student ${uid} (${realName})`);
+        console.log(`🚨 MODERATION TRIGGER ESCALATED to Counsellor Alerts for student ${uid} (${realName})`);
       }
     }
 
     return res.status(201).json({
       id: postId,
       ...newPost,
-      suicideTriggered: isSuicideTrigger,
-      message: isSuicideTrigger
+      suicideTriggered: isSuicide,
+      flagged: isFlagged,
+      message: isSuicide
         ? 'Crisis trigger detected. Support resources have been dispatched.'
-        : (isToxic ? 'Post flagged for review.' : 'Post published successfully.')
+        : (isToxic ? 'Post flagged and hidden for review.' : 'Post published successfully.')
     });
   } catch (error) {
     console.error('Error creating post:', error);
@@ -264,7 +308,7 @@ export const createPost = async (req, res) => {
   }
 };
 
-/** Add a reply to a forum post */
+/** Add a reply to a forum post with NLP safety moderation */
 export const addReply = async (req, res) => {
   const { id } = req.params;
   const { content } = req.body;
@@ -274,8 +318,7 @@ export const addReply = async (req, res) => {
     return res.status(400).json({ error: 'Bad Request', message: 'Reply content cannot be empty.' });
   }
 
-  const textLower = content.toLowerCase();
-  const isSuicideTrigger = SUICIDE_KEYWORDS.some(keyword => textLower.includes(keyword));
+  const { isSuicide, isToxic, isFlagged } = checkToxicityAndHarm(content);
 
   try {
     let userProfile = {};
@@ -290,7 +333,8 @@ export const addReply = async (req, res) => {
       pseudonym: userProfile.pseudonym || 'PeerHelper',
       avatarColor: userProfile.avatarColor || '#3B82F6',
       content: content.trim(),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      moderationStatus: isFlagged ? 'flagged' : 'approved'
     };
 
     if (db) {
@@ -302,14 +346,17 @@ export const addReply = async (req, res) => {
         const currentReplies = Array.isArray(postData.repliesList) ? postData.repliesList : [];
         currentReplies.push(replyObj);
 
+        // Calculate count of only approved replies
+        const approvedCount = currentReplies.filter(r => r.moderationStatus !== 'flagged').length;
+
         await postRef.update({
-          replies: currentReplies.length,
+          replies: approvedCount,
           repliesList: currentReplies
         });
       }
 
-      // If suicide keywords detected in reply, escalate
-      if (isSuicideTrigger) {
+      // If crisis or severe toxic harassment in reply, create alert for counsellor
+      if (isSuicide || isToxic) {
         await db.collection('alerts').add({
           uid,
           instituteId: userProfile.instituteId || 'default-institute',
@@ -323,16 +370,28 @@ export const addReply = async (req, res) => {
           trend: 'q9-override',
           flaggedAt: new Date().toISOString(),
           q9Override: true,
-          explanation: `🚨 Crisis Trigger in Peer Forum Reply: "${content.trim().substring(0, 100)}..."`,
+          explanation: isSuicide
+            ? `🚨 Crisis Trigger in Peer Forum Reply: "${content.trim().substring(0, 100)}..."`
+            : `⚠️ Toxic/Harassment Trigger in Peer Forum Reply: "${content.trim().substring(0, 100)}..."`,
           status: 'active'
         });
       }
     }
 
+    if (isFlagged) {
+      return res.status(200).json({
+        success: false,
+        flagged: true,
+        suicideTriggered: isSuicide,
+        message: 'Your reply was blocked by AI moderation for violating community safety guidelines.'
+      });
+    }
+
     return res.status(201).json({
       success: true,
+      flagged: false,
       reply: replyObj,
-      suicideTriggered: isSuicideTrigger
+      suicideTriggered: false
     });
   } catch (error) {
     console.error('Error adding reply:', error);

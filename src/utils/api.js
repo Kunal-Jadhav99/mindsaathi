@@ -100,6 +100,12 @@ export const likeForumPost = (id) => request(`/forum/${id}/like`, {
   method: 'POST'
 });
 
+export const addForumReply = (id, content) => request(`/forum/${id}/reply`, {
+  method: 'POST',
+  body: JSON.stringify({ content })
+});
+
+
 // ============================================================
 // Counsellor Admin Analytics APIs
 // ============================================================

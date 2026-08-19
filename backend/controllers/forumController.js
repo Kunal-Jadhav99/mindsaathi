@@ -38,8 +38,24 @@ const DEFAULT_POSTS = [
     tags: ['exam-stress', 'sleep'],
     timestamp: new Date(Date.now() - 2 * 86400000).toISOString(),
     likes: 18,
-    replies: 6,
-    moderationStatus: 'approved'
+    replies: 2,
+    moderationStatus: 'approved',
+    repliesList: [
+      {
+        id: 'rep_1',
+        pseudonym: 'GentleWind33',
+        avatarColor: '#3B82F6',
+        content: 'Try putting your phone in another room at least 30 mins before sleeping. It made a huge difference for my anxiety.',
+        timestamp: new Date(Date.now() - 1.8 * 86400000).toISOString()
+      },
+      {
+        id: 'rep_2',
+        pseudonym: 'StillLake88',
+        avatarColor: '#8B5CF6',
+        content: 'The progressive muscle relaxation audio in the Resources tab helps me every time!',
+        timestamp: new Date(Date.now() - 1.5 * 86400000).toISOString()
+      }
+    ]
   },
   {
     id: 'fp_seed_2',
@@ -49,9 +65,25 @@ const DEFAULT_POSTS = [
     category: 'wellbeing',
     tags: ['breathing', 'coping'],
     timestamp: new Date(Date.now() - 2 * 86400000).toISOString(),
-    likes: 32,
-    replies: 9,
-    moderationStatus: 'approved'
+    likes: 33,
+    replies: 2,
+    moderationStatus: 'approved',
+    repliesList: [
+      {
+        id: 'rep_3',
+        pseudonym: 'BrightStar09',
+        avatarColor: '#F59E0B',
+        content: 'So glad it helped! The box breathing method is another great one to try when you have sudden palpitations.',
+        timestamp: new Date(Date.now() - 1.9 * 86400000).toISOString()
+      },
+      {
+        id: 'rep_4',
+        pseudonym: 'CalmRiver55',
+        avatarColor: '#10B981',
+        content: '4-7-8 is amazing. Saved me during mid-terms last semester.',
+        timestamp: new Date(Date.now() - 1.6 * 86400000).toISOString()
+      }
+    ]
   },
   {
     id: 'fp_seed_3',
@@ -62,8 +94,24 @@ const DEFAULT_POSTS = [
     tags: ['burnout', 'guilt'],
     timestamp: new Date(Date.now() - 3 * 86400000).toISOString(),
     likes: 44,
-    replies: 14,
-    moderationStatus: 'approved'
+    replies: 2,
+    moderationStatus: 'approved',
+    repliesList: [
+      {
+        id: 'rep_5',
+        pseudonym: 'SilentMountain7',
+        avatarColor: '#22C55E',
+        content: 'Rest is part of the work! Without rest, brain fog just doubles study time anyway.',
+        timestamp: new Date(Date.now() - 2.8 * 86400000).toISOString()
+      },
+      {
+        id: 'rep_6',
+        pseudonym: 'QuietOwl42',
+        avatarColor: '#EC4899',
+        content: '100% relate. Scheduling specific break times as "mandatory maintenance" helped remove the guilt for me.',
+        timestamp: new Date(Date.now() - 2.5 * 86400000).toISOString()
+      }
+    ]
   },
   {
     id: 'fp_seed_4',
@@ -74,8 +122,17 @@ const DEFAULT_POSTS = [
     tags: ['counselling', 'hope'],
     timestamp: new Date(Date.now() - 4 * 86400000).toISOString(),
     likes: 67,
-    replies: 21,
-    moderationStatus: 'approved'
+    replies: 1,
+    moderationStatus: 'approved',
+    repliesList: [
+      {
+        id: 'rep_7',
+        pseudonym: 'DriftingCloud11',
+        avatarColor: '#06B6D4',
+        content: 'Proud of you! Mental health stigma in college needs to end.',
+        timestamp: new Date(Date.now() - 3.8 * 86400000).toISOString()
+      }
+    ]
   }
 ];
 
@@ -97,7 +154,11 @@ export const getPosts = async (req, res) => {
       const data = doc.data();
       // Show approved posts, or student's own flagged posts
       if (data.moderationStatus === 'approved' || (req.user && data.uid === req.user.uid)) {
-        posts.push({ id: doc.id, ...data });
+        posts.push({
+          id: doc.id,
+          repliesList: data.repliesList || [],
+          ...data
+        });
       }
     });
 
@@ -156,6 +217,7 @@ export const createPost = async (req, res) => {
       timestamp: new Date().toISOString(),
       likes: 0,
       replies: 0,
+      repliesList: [],
       moderationStatus,
       suicideFlag: isSuicideTrigger
     };
@@ -198,6 +260,82 @@ export const createPost = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating post:', error);
+    return res.status(500).json({ error: 'Server Error', message: error.message });
+  }
+};
+
+/** Add a reply to a forum post */
+export const addReply = async (req, res) => {
+  const { id } = req.params;
+  const { content } = req.body;
+  const { uid, email } = req.user;
+
+  if (!content || !content.trim()) {
+    return res.status(400).json({ error: 'Bad Request', message: 'Reply content cannot be empty.' });
+  }
+
+  const textLower = content.toLowerCase();
+  const isSuicideTrigger = SUICIDE_KEYWORDS.some(keyword => textLower.includes(keyword));
+
+  try {
+    let userProfile = {};
+    if (db) {
+      const userDoc = await db.collection('users').doc(uid).get();
+      if (userDoc.exists) userProfile = userDoc.data();
+    }
+
+    const replyObj = {
+      id: `rep_${Date.now()}`,
+      uid,
+      pseudonym: userProfile.pseudonym || 'PeerHelper',
+      avatarColor: userProfile.avatarColor || '#3B82F6',
+      content: content.trim(),
+      timestamp: new Date().toISOString()
+    };
+
+    if (db) {
+      const postRef = db.collection('forum_posts').doc(id);
+      const postDoc = await postRef.get();
+
+      if (postDoc.exists) {
+        const postData = postDoc.data();
+        const currentReplies = Array.isArray(postData.repliesList) ? postData.repliesList : [];
+        currentReplies.push(replyObj);
+
+        await postRef.update({
+          replies: currentReplies.length,
+          repliesList: currentReplies
+        });
+      }
+
+      // If suicide keywords detected in reply, escalate
+      if (isSuicideTrigger) {
+        await db.collection('alerts').add({
+          uid,
+          instituteId: userProfile.instituteId || 'default-institute',
+          department: userProfile.department || 'General',
+          pseudonym: userProfile.pseudonym || 'Student',
+          realName: userProfile.realName || email?.split('@')[0] || 'Student',
+          email: email || '',
+          phone: userProfile.phone || '',
+          riskLevel: 'high',
+          latestScore: 48,
+          trend: 'q9-override',
+          flaggedAt: new Date().toISOString(),
+          q9Override: true,
+          explanation: `🚨 Crisis Trigger in Peer Forum Reply: "${content.trim().substring(0, 100)}..."`,
+          status: 'active'
+        });
+      }
+    }
+
+    return res.status(201).json({
+      success: true,
+      reply: replyObj,
+      suicideTriggered: isSuicideTrigger
+    });
+  } catch (error) {
+    console.error('Error adding reply:', error);
     return res.status(500).json({ error: 'Server Error', message: error.message });
   }
 };

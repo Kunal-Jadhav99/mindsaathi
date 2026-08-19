@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import {
   Shield, MessageCircle, Heart, AlertTriangle, Send, Plus,
-  Search, Tag, Sparkles, Phone, X, LifeBuoy
+  Search, Tag, Sparkles, Phone, X, LifeBuoy, ChevronDown, ChevronUp, CornerDownRight
 } from 'lucide-react';
-import { getForumPosts, createForumPost, likeForumPost } from '../utils/api';
+import { getForumPosts, createForumPost, likeForumPost, addForumReply } from '../utils/api';
 
 const CATEGORIES = [
   { id: 'all',        label: 'All Topics',        emoji: '💬' },
@@ -40,6 +40,11 @@ export default function Forum() {
   const [sort, setSort] = useState('latest');
   const [crisisTriggered, setCrisisTriggered] = useState(false);
   const [likedPosts, setLikedPosts] = useState(new Set());
+  
+  // Interactive replies states
+  const [expandedReplies, setExpandedReplies] = useState(new Set());
+  const [replyInputs, setReplyInputs] = useState({});
+  const [submittingReplyId, setSubmittingReplyId] = useState(null);
 
   async function loadPosts() {
     try {
@@ -98,6 +103,56 @@ export default function Forum() {
     }
   }
 
+  function toggleReplies(postId) {
+    setExpandedReplies(prev => {
+      const next = new Set(prev);
+      if (next.has(postId)) {
+        next.delete(postId);
+      } else {
+        next.add(postId);
+      }
+      return next;
+    });
+  }
+
+  async function handleSendReply(postId) {
+    const text = (replyInputs[postId] || '').trim();
+    if (!text) return;
+
+    setSubmittingReplyId(postId);
+
+    try {
+      const res = await addForumReply(postId, text);
+
+      if (res.suicideTriggered) {
+        setCrisisTriggered(true);
+        openSOS();
+      }
+
+      // Append new reply to post in UI
+      setPosts(prev => prev.map(p => {
+        if (p.id === postId) {
+          const updatedList = Array.isArray(p.repliesList) ? [...p.repliesList, res.reply] : [res.reply];
+          return {
+            ...p,
+            replies: updatedList.length,
+            repliesList: updatedList
+          };
+        }
+        return p;
+      }));
+
+      // Clear input
+      setReplyInputs(prev => ({ ...prev, [postId]: '' }));
+      // Ensure replies view is open
+      setExpandedReplies(prev => new Set(prev).add(postId));
+    } catch (err) {
+      console.error('Failed to send reply:', err);
+    } finally {
+      setSubmittingReplyId(null);
+    }
+  }
+
   function toggleTag(tag) {
     setSelectedTags(prev =>
       prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
@@ -115,7 +170,7 @@ export default function Forum() {
   });
 
   const sorted = [...visible].sort((a, b) => {
-    if (sort === 'popular') return (b.likes + b.replies) - (a.likes + a.replies);
+    if (sort === 'popular') return (b.likes + (b.replies || 0)) - (a.likes + (a.replies || 0));
     return new Date(b.timestamp) - new Date(a.timestamp);
   });
 
@@ -162,7 +217,7 @@ export default function Forum() {
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: '14px', fontWeight: 700 }}>You are not alone — Immediate Help is Available</div>
             <p style={{ fontSize: '12px', color: '#991B1B', margin: '4px 0 8px', lineHeight: 1.5 }}>
-              Your post mentioned thoughts of severe distress or self-harm. An emergency alert has been sent to the college counselling cell, and free 24/7 crisis helplines are available right now.
+              Your post or reply mentioned thoughts of severe distress. An emergency alert has been forwarded to the college counsellor and free 24/7 crisis helplines are available.
             </p>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <a href="tel:14416" className="btn btn-sm" style={{ background: '#DC2626', color: '#fff', fontSize: '11px', borderRadius: '6px' }}>
@@ -385,6 +440,8 @@ export default function Forum() {
             sorted.map(post => {
               const isLiked = likedPosts.has(post.id);
               const isFlagged = post.moderationStatus === 'flagged';
+              const isExpanded = expandedReplies.has(post.id);
+              const repliesCount = post.repliesList?.length ?? (post.replies || 0);
 
               return (
                 <div
@@ -461,7 +518,7 @@ export default function Forum() {
                     </div>
                   )}
 
-                  {/* Footer Actions */}
+                  {/* Footer Actions (Like + Toggle Replies) */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px', paddingTop: '12px', borderTop: '1px solid var(--border-subtle)' }}>
                     <button
                       onClick={() => handleLike(post.id)}
@@ -476,11 +533,102 @@ export default function Forum() {
                       <span>{post.likes || 0}</span>
                     </button>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)' }}>
+                    <button
+                      onClick={() => toggleReplies(post.id)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '6px',
+                        fontSize: '12px', fontWeight: 600, border: 'none', background: 'transparent',
+                        color: isExpanded ? '#2563EB' : 'var(--text-muted)', cursor: 'pointer', padding: 0,
+                        transition: 'color 0.12s ease'
+                      }}
+                    >
                       <MessageCircle size={15} />
-                      <span>{post.replies || 0} replies</span>
-                    </div>
+                      <span>{repliesCount} {repliesCount === 1 ? 'reply' : 'replies'}</span>
+                      {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </button>
                   </div>
+
+                  {/* ── Expandable Replies Section ── */}
+                  {isExpanded && (
+                    <div style={{
+                      marginTop: '16px', paddingTop: '16px', borderTop: '1px dashed var(--border)',
+                      display: 'flex', flexDirection: 'column', gap: '12px'
+                    }}>
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <CornerDownRight size={14} /> Discussion Thread ({repliesCount})
+                      </div>
+
+                      {/* List of Replies */}
+                      {Array.isArray(post.repliesList) && post.repliesList.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {post.repliesList.map(reply => (
+                            <div
+                              key={reply.id}
+                              style={{
+                                padding: '10px 14px', borderRadius: '10px',
+                                background: '#F8FAFC', border: '1px solid #E2E8F0'
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <div style={{
+                                    width: '22px', height: '22px', borderRadius: '50%',
+                                    background: `${reply.avatarColor || '#3B82F6'}25`, color: reply.avatarColor || '#3B82F6',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '11px'
+                                  }}>
+                                    {(reply.pseudonym || 'P')[0]}
+                                  </div>
+                                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                    {reply.pseudonym}
+                                  </span>
+                                </div>
+                                <span style={{ fontSize: '10px', color: 'var(--text-faint)' }}>
+                                  {formatTime(reply.timestamp)}
+                                </span>
+                              </div>
+                              <p style={{ fontSize: '13px', color: 'var(--text-body)', margin: 0, lineHeight: 1.5 }}>
+                                {reply.content}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p style={{ fontSize: '12px', color: 'var(--text-faint)', fontStyle: 'italic', margin: 0 }}>
+                          No replies yet. Be the first to reply and support your peer!
+                        </p>
+                      )}
+
+                      {/* Inline Reply Input */}
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                        <input
+                          type="text"
+                          className="input"
+                          placeholder={`Reply as ${user?.pseudonym || 'Your Pseudonym'}...`}
+                          value={replyInputs[post.id] || ''}
+                          onChange={e => setReplyInputs(prev => ({ ...prev, [post.id]: e.target.value }))}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              handleSendReply(post.id);
+                            }
+                          }}
+                          style={{
+                            flex: 1, height: '36px', fontSize: '13px', borderRadius: '8px',
+                            background: '#FFFFFF', border: '1px solid var(--border)'
+                          }}
+                        />
+                        <button
+                          onClick={() => handleSendReply(post.id)}
+                          disabled={!replyInputs[post.id]?.trim() || submittingReplyId === post.id}
+                          className="btn btn-primary"
+                          style={{ height: '36px', padding: '0 14px', borderRadius: '8px', fontSize: '12px' }}
+                        >
+                          <Send size={13} />
+                          {submittingReplyId === post.id ? 'Sending…' : 'Reply'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })

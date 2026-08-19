@@ -87,10 +87,10 @@ export const updateProfile = async (req, res) => {
   }
 };
 
-/** Set user role, institute, department, year & profile details directly */
+/** Set user role, institute, department, year, phone & profile details directly */
 export const setRole = async (req, res) => {
   const { uid, email } = req.user;
-  const { role, instituteId, department, year, realName } = req.body;
+  const { role, instituteId, department, year, realName, phone } = req.body;
 
   if (!['student', 'admin', 'counsellor'].includes(role)) {
     return res.status(400).json({ error: 'Bad Request', message: 'Invalid role value.' });
@@ -110,6 +110,7 @@ export const setRole = async (req, res) => {
         uid,
         email: email || '',
         realName: realName || email?.split('@')[0] || 'Student',
+        phone: phone || '',
         pseudonym: generateRandomPseudonym(),
         avatarColor: RANDOM_COLORS[Math.floor(Math.random() * RANDOM_COLORS.length)],
         streak: 1,
@@ -129,6 +130,7 @@ export const setRole = async (req, res) => {
     if (department) updates.department = department;
     if (year) updates.year = year;
     if (realName) updates.realName = realName;
+    if (phone) updates.phone = phone;
 
     await userDocRef.set(updates, { merge: true });
     return res.json({
@@ -137,12 +139,14 @@ export const setRole = async (req, res) => {
       instituteId: updates.instituteId || userDoc.data().instituteId,
       department: updates.department || userDoc.data().department,
       year: updates.year || userDoc.data().year,
-      realName: updates.realName || userDoc.data().realName
+      realName: updates.realName || userDoc.data().realName,
+      phone: updates.phone || userDoc.data().phone || ''
     });
   } catch (error) {
     console.error('Error setting user role:', error);
     return res.status(500).json({ error: 'Server Error', message: error.message });
   }
 };
+
 
 

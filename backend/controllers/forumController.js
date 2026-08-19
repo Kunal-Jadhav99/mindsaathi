@@ -174,6 +174,7 @@ export const createPost = async (req, res) => {
           pseudonym,
           realName,
           email: email || '',
+          phone: userProfile.phone || '',
           riskLevel: 'high',
           latestScore: 48,
           trend: 'q9-override',

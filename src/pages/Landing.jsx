@@ -165,6 +165,7 @@ export default function Landing() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [realName, setRealName] = useState("");
+  const [phone, setPhone] = useState("");
   const [department, setDepartment] = useState("Computer Science");
   const [year, setYear] = useState("1st Year");
   const [loading, setLoading] = useState(false);
@@ -179,7 +180,7 @@ export default function Landing() {
 
     try {
       if (isRegisterMode) {
-        await registerUser(email, password, "student", { realName, department, year });
+        await registerUser(email, password, "student", { realName, phone, department, year });
         navigate("/onboarding");
       } else {
         await loginUser(email, password, "student");
@@ -313,18 +314,32 @@ export default function Landing() {
 
                 <form onSubmit={handleLogin} className="space-y-4">
                   {isRegisterMode && (
-                    <div>
-                      <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Full Name</label>
-                      <input
-                        id="register-name"
-                        type="text"
-                        className="input"
-                        placeholder="e.g. Aarav Sharma"
-                        value={realName}
-                        onChange={(e) => setRealName(e.target.value)}
-                        required={isRegisterMode}
-                      />
-                    </div>
+                    <>
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Full Name</label>
+                        <input
+                          id="register-name"
+                          type="text"
+                          className="input"
+                          placeholder="e.g. Aarav Sharma"
+                          value={realName}
+                          onChange={(e) => setRealName(e.target.value)}
+                          required={isRegisterMode}
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.14em] text-slate-500">Phone Number (Confidential)</label>
+                        <input
+                          id="register-phone"
+                          type="tel"
+                          className="input"
+                          placeholder="e.g. +91 9876543210"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          required={isRegisterMode}
+                        />
+                      </div>
+                    </>
                   )}
 
                   <div>

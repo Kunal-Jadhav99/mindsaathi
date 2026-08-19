@@ -171,11 +171,16 @@ export default function AdminAlerts() {
                   {avatarInitial}
                 </div>
                 <div>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {alert.realName || 'Unknown Student'}
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {alert.realName || alert.pseudonym || 'Student'}
                   </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px' }}>
-                    Pseudo: <span style={{ fontWeight: 600 }}>{alert.pseudonym}</span> · {alert.department || 'General'}
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    {alert.department || 'General'} · {alert.email || 'No email'}
+                    {alert.phone && (
+                      <span style={{ marginLeft: '6px', fontWeight: 600, color: '#2563EB' }}>
+                        · 📞 {alert.phone}
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: '10px', color: 'var(--text-faint)', marginTop: '2px' }}>
                     Flagged {alert.flaggedAt ? timeAgo(alert.flaggedAt) : 'recently'}
@@ -218,7 +223,7 @@ export default function AdminAlerts() {
               </div>
 
               {/* Actions */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', flexWrap: 'wrap' }}>
                 <button
                   onClick={() => handleResolveAlert(alert.id)}
                   disabled={resolvingId === alert.id}
@@ -231,13 +236,26 @@ export default function AdminAlerts() {
                   <CheckCircle size={14} />
                   {resolvingId === alert.id ? 'Resolving…' : 'Resolve'}
                 </button>
+                {alert.phone && (
+                  <a
+                    href={`tel:${alert.phone}`}
+                    className="btn"
+                    style={{
+                      background: '#EFF6FF', color: '#2563EB', border: '1px solid #BFDBFE',
+                      fontSize: '12px', padding: '6px 12px', borderRadius: '8px', fontWeight: 600
+                    }}
+                  >
+                    <Phone size={13} />
+                    Call
+                  </a>
+                )}
                 <a
                   href={`mailto:${alert.email || ''}`}
                   className="btn btn-primary"
                   style={{ fontSize: '12px', padding: '6px 12px', borderRadius: '8px' }}
                 >
                   <Mail size={13} />
-                  Contact
+                  Email
                 </a>
               </div>
             </div>
